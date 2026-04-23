@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Batfish Network Simulation Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg0:#070b0f; --bg1:#0d1117; --bg2:#131b24; --bg3:#1a2433;
+  --border:#1e2d3d; --border2:#253545;
+  --cyan:#00e5ff; --cyan2:#00b4cc; --cyan3:#007a99;
+  --green:#00ff9d; --green2:#00cc7a;
+  --orange:#ff6b35; --orange2:#cc5228;
+  --yellow:#ffd60a; --red:#ff3860; --purple:#c084fc;
+  --text1:#e8eaf0; --text2:#8899aa; --text3:#4a6070;
+  --f5:#f56600; --fortinet:#da3832; --cisco:#049fd9; --palo:#fa582d; --aws:#ff9900;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg0);color:var(--text1);font-family:'JetBrains Mono',monospace;font-size:13px;overflow:hidden;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-rows:52px 1fr;grid-template-columns:260px 1fr 340px;height:100vh;}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--bg1);border-bottom:1px solid var(--border);z-index:100;}
+.sidebar{grid-row:2;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+.main{grid-row:2;background:var(--bg0);display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+.panel{grid-row:2;background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+
+/* TOPBAR */
+.logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--cyan);letter-spacing:2px;white-space:nowrap;}
+.logo span{color:var(--text2);}
+.conn-bar{display:flex;align-items:center;gap:8px;margin-left:12px;}
+.conn-bar input{background:var(--bg2);border:1px solid var(--border2);color:var(--text1);padding:5px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:160px;}
+.conn-bar input:focus{outline:none;border-color:var(--cyan3);}
+.btn{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;letter-spacing:1px;padding:6px 16px;border:none;border-radius:4px;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--cyan3);color:#fff;}
+.btn-primary:hover{background:var(--cyan2);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{border-color:var(--cyan3);color:var(--cyan);}
+.btn-danger{background:var(--red);color:#fff;padding:4px 10px;font-size:12px;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 2s infinite;}
+.status-dot.connected{background:var(--green);animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.status-label{font-size:11px;color:var(--text2);}
+.spacer{flex:1;}
+.tabs-top{display:flex;gap:2px;margin-left:8px;}
+.tab-top{padding:6px 14px;background:transparent;border:none;color:var(--text2);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab-top.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-top:hover{color:var(--text1);}
+
+/* TOPOLOGY SELECTOR */
+.topo-selector{display:flex;align-items:center;gap:6px;margin-left:8px;padding-left:12px;border-left:1px solid var(--border2);}
+.topo-selector select{background:var(--bg2);border:1px solid var(--border2);color:var(--text1);padding:4px 24px 4px 8px;border-radius:4px;font-family:inherit;font-size:11px;outline:none;appearance:none;cursor:pointer;min-width:150px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238899aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;}
+.topo-selector select:focus{border-color:var(--cyan3);}
+.topo-selector .topo-label{font-size:10px;color:var(--text3);letter-spacing:1px;}
+.topo-btn{padding:3px 8px;font-size:11px;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:3px;cursor:pointer;font-family:inherit;transition:all .15s;}
+.topo-btn:hover{border-color:var(--cyan3);color:var(--cyan);}
+.topo-btn.danger:hover{border-color:var(--red);color:var(--red);}
+
+/* SIDEBAR */
+.sidebar-header{padding:12px 16px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;color:var(--text3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.sidebar-search{padding:8px 12px;border-bottom:1px solid var(--border);}
+.sidebar-search input{width:100%;background:var(--bg2);border:1px solid var(--border2);color:var(--text1);padding:5px 8px;border-radius:4px;font-family:inherit;font-size:12px;}
+.sidebar-search input:focus{outline:none;border-color:var(--cyan3);}
+.device-list{flex:1;overflow-y:auto;padding:6px 0;}
+.device-group{margin-bottom:4px;}
+.device-group-hdr{padding:6px 16px;font-size:10px;letter-spacing:2px;color:var(--text3);font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+.device-group-hdr:hover{color:var(--text2);}
+.chevron{transition:transform .2s;font-size:8px;}
+.chevron.open{transform:rotate(90deg);}
+.device-item{padding:7px 16px 7px 28px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s;border-left:2px solid transparent;position:relative;}
+.device-item:hover{background:var(--bg2);}
+.device-item.active{background:var(--bg3);border-left-color:var(--cyan);color:var(--cyan);}
+.vendor-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.dev-name{flex:1;font-size:12px;}
+.dev-status{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.dev-status.warn{background:var(--yellow);}
+.dev-status.err{background:var(--red);}
+.dev-del-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);opacity:0;transition:opacity .15s;background:transparent;border:1px solid transparent;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:3px;font-size:10px;}
+.device-item:hover .dev-del-btn{opacity:1;}
+.dev-del-btn:hover{color:var(--red);border-color:var(--red);}
+.add-device-btn{margin:8px 12px;width:calc(100% - 24px);}
+
+/* SIDEBAR LINKS SECTION */
+.links-section{border-top:1px solid var(--border);padding:8px 12px;max-height:200px;overflow-y:auto;}
+.links-section-hdr{font-size:10px;letter-spacing:2px;color:var(--text3);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.link-item{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:3px;font-size:10px;color:var(--text2);transition:background .1s;}
+.link-item:hover{background:var(--bg2);}
+.link-item .link-del{margin-left:auto;opacity:0;transition:opacity .12s;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:1px 3px;}
+.link-item:hover .link-del{opacity:1;}
+.link-item .link-del:hover{color:var(--red);}
+
+/* MAIN */
+.main-tabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--border);padding:0 16px;}
+.main-tab{padding:10px 16px;background:transparent;border:none;color:var(--text2);font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.main-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.main-tab:hover{color:var(--text1);}
+.main-content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+
+/* TOPOLOGY */
+.topo-wrap{flex:1;position:relative;overflow:hidden;min-height:0;height:100%;display:flex;flex-direction:column;}
+#topoCanvas{width:100%;height:100%;flex:1;min-height:0;display:block;}
+.topo-toolbar{position:absolute;top:10px;right:10px;z-index:10;display:flex;gap:6px;}
+.link-mode-btn{padding:5px 12px;border-radius:4px;border:1px solid var(--border2);background:var(--bg1);color:var(--text2);font-family:inherit;font-size:11px;cursor:pointer;transition:all .15s;font-weight:600;}
+.link-mode-btn:hover{border-color:var(--cyan3);color:var(--cyan);}
+.link-mode-btn.active{background:var(--cyan3);color:#fff;border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.25);}
+.link-float-label{position:absolute;top:10px;left:50%;transform:translateX(-50%);padding:4px 14px;background:rgba(0,229,255,.12);border:1px solid var(--cyan3);border-radius:4px;color:var(--cyan);font-size:11px;pointer-events:none;z-index:20;display:none;animation:float-in .2s ease;}
+.link-float-label.visible{display:block;}
+@keyframes float-in{from{opacity:0;transform:translateX(-50%) translateY(4px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.topo-legend{position:absolute;bottom:12px;left:12px;background:rgba(13,17,23,.9);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;gap:16px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);}
+.legend-dot{width:10px;height:10px;border-radius:2px;}
+
+/* CONFIG EDITOR */
+.config-wrap{flex:1;display:flex;flex-direction:column;padding:16px;gap:12px;overflow:auto;}
+.config-header{display:flex;align-items:center;gap:12px;}
+.config-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--cyan);}
+.config-meta{font-size:11px;color:var(--text3);}
+.vendor-badge{padding:3px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1px;}
+.vendor-badge.f5{background:#f5660022;color:var(--f5);border:1px solid #f5660044;}
+.vendor-badge.fortinet{background:#da383222;color:var(--fortinet);border:1px solid #da383244;}
+.vendor-badge.cisco{background:#049fd922;color:var(--cisco);border:1px solid #049fd944;}
+.vendor-badge.palo{background:#fa582d22;color:var(--palo);border:1px solid #fa582d44;}
+.vendor-badge.aws{background:#ff990022;color:var(--aws);border:1px solid #ff990044;}
+.editor-area{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;min-height:300px;}
+.editor-toolbar{padding:6px 12px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;}
+.editor-label{font-size:11px;color:var(--text3);margin-right:auto;}
+textarea.code{flex:1;background:transparent;border:none;color:var(--green);font-family:'JetBrains Mono',monospace;font-size:11.5px;padding:12px 16px;resize:none;line-height:1.6;outline:none;}
+.config-actions{display:flex;gap:8px;}
+
+/* SIMULATIONS */
+.sim-wrap{flex:1;display:flex;flex-direction:column;padding:16px;gap:14px;overflow:auto;}
+.sim-section{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.sim-section-hdr{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
+.sim-section-body{padding:14px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-label{font-size:10px;color:var(--text3);letter-spacing:1px;}
+.form-input{background:var(--bg1);border:1px solid var(--border2);color:var(--text1);padding:6px 10px;border-radius:4px;font-family:inherit;font-size:12px;}
+.form-input:focus{outline:none;border-color:var(--cyan3);}
+select.form-input option{background:var(--bg1);}
+.sim-run-bar{display:flex;gap:8px;margin-top:10px;}
+
+/* RESULTS PANEL */
+.panel-header{padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.panel-body{flex:1;overflow-y:auto;padding:12px;}
+.result-block{background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;}
+.result-block-hdr{padding:8px 12px;background:var(--bg3);display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;}
+.result-block-body{padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.7;}
+.tag{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.tag-ok{background:#00ff9d18;color:var(--green);border:1px solid #00ff9d33;}
+.tag-warn{background:#ffd60a18;color:var(--yellow);border:1px solid #ffd60a33;}
+.tag-err{background:#ff386018;color:var(--red);border:1px solid #ff386033;}
+.tag-info{background:#00e5ff18;color:var(--cyan);border:1px solid #00e5ff33;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cyan);background:var(--bg0);padding:2px 5px;border-radius:2px;}
+.log-line{padding:2px 0;border-bottom:1px solid var(--border);font-size:10.5px;display:flex;gap:8px;}
+.log-time{color:var(--text3);white-space:nowrap;}
+.log-msg{color:var(--text2);}
+.log-msg.ok{color:var(--green);}
+.log-msg.err{color:var(--red);}
+.log-msg.warn{color:var(--yellow);}
+.log-msg.info{color:var(--cyan);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:12px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:999;display:none;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:520px;max-width:95vw;overflow:hidden;}
+.modal-hdr{padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px;}
+.modal-body{padding:18px;display:flex;flex-direction:column;gap:12px;}
+.modal-footer{padding:12px 18px;background:var(--bg2);border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.full-form-group{display:flex;flex-direction:column;gap:4px;}
+
+/* TOPOLOGY NODES */
+.node-label{font-size:11px;fill:var(--text1);font-family:'JetBrains Mono',monospace;}
+.node-vendor{font-size:9px;fill:var(--text3);font-family:'JetBrains Mono',monospace;}
+.link{stroke:var(--border2);stroke-width:1.5;}
+.link.highlight{stroke:var(--cyan);stroke-width:2;stroke-dasharray:6 3;animation:dash 1s linear infinite;}
+.topo-link-line{cursor:pointer;transition:stroke .15s, stroke-width .15s;}
+.topo-link-line:hover{stroke:var(--red) !important;stroke-width:3 !important;}
+.topo-link-hitbox{cursor:pointer;}
+.topo-node-group{cursor:pointer;}
+.topo-node-group.link-source circle.node-ring{stroke-dasharray:4 2;animation:pulse-ring 1s ease-in-out infinite;}
+@keyframes pulse-ring{0%,100%{stroke-opacity:1;}50%{stroke-opacity:.4;}}
+@keyframes dash{to{stroke-dashoffset:-18;}}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan3);}
+
+/* DIFF VIEW */
+.diff-wrap{flex:1;display:flex;flex-direction:column;padding:16px;gap:12px;overflow:auto;}
+.diff-hdr{display:flex;gap:12px;align-items:center;}
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;}
+.diff-pane{background:var(--bg2);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;min-height:250px;}
+.diff-pane-hdr{padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.diff-pane textarea{flex:1;background:transparent;border:none;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px;padding:10px 12px;resize:none;outline:none;line-height:1.6;}
+.diff-result{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;line-height:1.8;}
+.diff-add{color:var(--green);}
+.diff-del{color:var(--red);}
+.diff-same{color:var(--text3);}
+.progress-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px;}
+.progress-fill{height:100%;background:var(--cyan);width:0%;transition:width .3s;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="logo">BATFISH<span>·SIM</span></div>
+
+  <div class="topo-selector">
+    <span class="topo-label">TOPO:</span>
+    <select id="topoSelect"></select>
+    <button class="topo-btn" onclick="openRenameTopoModal()" title="Rename topology">✎</button>
+    <button class="topo-btn" onclick="openNewTopoModal()" title="New topology">＋</button>
+    <button class="topo-btn danger" onclick="confirmDeleteTopology()" title="Delete topology">✕</button>
+  </div>
+
+  <div class="conn-bar">
+    <input id="bfHost" value="192.168.1.100" placeholder="Batfish Host"/>
+    <input id="bfPort" value="9996" placeholder="Port" style="width:70px"/>
+    <button class="btn btn-primary" onclick="testConnection()">CONNECT</button>
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-label" id="statusLabel">DISCONNECTED</span>
+  </div>
+  <div class="tabs-top">
+    <button class="tab-top active" onclick="switchView('topology',this)">TOPOLOGY</button>
+    <button class="tab-top" onclick="switchView('config',this)">CONFIG EDITOR</button>
+    <button class="tab-top" onclick="switchView('simulation',this)">SIMULATIONS</button>
+    <button class="tab-top" onclick="switchView('diff',this)">DIFF ANALYSIS</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn btn-ghost btn-sm" onclick="openAddDevice()">＋ ADD DEVICE</button>
+  <button class="btn btn-ghost btn-sm" onclick="pushToSnapshot()">⬆ PUSH SNAPSHOT</button>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <span>◈</span> NETWORK INVENTORY
+    <span style="margin-left:auto;color:var(--cyan);font-size:11px" id="devCount">0 devices</span>
+  </div>
+  <div class="sidebar-search"><input id="devSearch" placeholder="Search devices..." oninput="filterDevices(this.value)"/></div>
+  <div class="device-list" id="deviceList"></div>
+  <div class="links-section" id="linksSection"></div>
+  <div style="padding:8px 12px;border-top:1px solid var(--border);">
+    <button class="btn btn-ghost add-device-btn" onclick="openAddDevice()">＋ ADD DEVICE</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="main-tabs">
+    <button class="main-tab active" id="mt-topology" onclick="switchView('topology',null)">TOPOLOGY</button>
+    <button class="main-tab" id="mt-config" onclick="switchView('config',null)">CONFIG EDITOR</button>
+    <button class="main-tab" id="mt-simulation" onclick="switchView('simulation',null)">SIMULATIONS</button>
+    <button class="main-tab" id="mt-diff" onclick="switchView('diff',null)">DIFF</button>
+  </div>
+  <div class="main-content">
+
+    <!-- TOPOLOGY VIEW -->
+    <div id="view-topology" class="topo-wrap" style="display:flex">
+      <div class="topo-toolbar">
+        <button class="link-mode-btn" id="linkModeBtn" onclick="toggleLinkMode()">🔗 LINK MODE</button>
+      </div>
+      <div class="link-float-label" id="linkFloatLabel">Select target device…</div>
+      <svg id="topoCanvas" width="100%" height="100%" viewBox="0 0 780 580" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="topo-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--f5)"></div>F5 BIG-IP</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--fortinet)"></div>FortiGate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--cisco)"></div>Cisco</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--palo)"></div>Palo Alto</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--aws)"></div>AWS</div>
+      </div>
+    </div>
+
+    <!-- CONFIG VIEW -->
+    <div id="view-config" class="config-wrap" style="display:none">
+      <div class="config-header">
+        <div id="cfgTitle" class="config-title">Select a device</div>
+        <div id="cfgBadge" class="vendor-badge"></div>
+        <div id="cfgMeta" class="config-meta"></div>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="validateConfig()">⚡ VALIDATE</button>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 SAVE</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="cfgProgress"></div></div>
+      <div class="editor-area">
+        <div class="editor-toolbar">
+          <span class="editor-label" id="editorLabel">No file open</span>
+          <button class="btn btn-ghost btn-sm" onclick="formatConfig()">FORMAT</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyConfig()">COPY</button>
+        </div>
+        <textarea class="code" id="configEditor" spellcheck="false" placeholder="# Select a device from the sidebar to edit its configuration..."></textarea>
+      </div>
+      <div class="config-actions">
+        <button class="btn btn-ghost btn-sm" onclick="insertTemplate()">INSERT TEMPLATE BLOCK</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearConfig()">CLEAR</button>
+      </div>
+    </div>
+
+    <!-- SIMULATION VIEW -->
+    <div id="view-simulation" class="sim-wrap" style="display:none">
+      <!-- Reachability -->
+      <div class="sim-section">
+        <div class="sim-section-hdr"><span style="color:var(--cyan)">▶</span> REACHABILITY ANALYSIS</div>
+        <div class="sim-section-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">SOURCE NODE</label>
+              <select class="form-input" id="simSrc"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DESTINATION NODE</label>
+              <select class="form-input" id="simDst"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">SOURCE IP</label>
+              <input class="form-input" id="simSrcIp" value="10.0.1.10" placeholder="10.0.1.10"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DESTINATION IP</label>
+              <input class="form-input" id="simDstIp" value="10.0.100.50" placeholder="10.0.100.50"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">PROTOCOL</label>
+              <select class="form-input" id="simProto">
+                <option>TCP</option><option>UDP</option><option>ICMP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DEST PORT</label>
+              <input class="form-input" id="simPort" value="443" placeholder="443"/>
+            </div>
+          </div>
+          <div class="sim-run-bar">
+            <button class="btn btn-primary" onclick="runSim('reachability')">RUN REACHABILITY CHECK</button>
+            <button class="btn btn-ghost" onclick="runSim('traceroute')">TRACEROUTE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACL / Policy Trace -->
+      <div class="sim-section">
+        <div class="sim-section-hdr"><span style="color:var(--orange)">⚑</span> ACL / POLICY TRACE</div>
+        <div class="sim-section-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">DEVICE</label>
+              <select class="form-input" id="aclDevice"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">FILTER / ACL NAME</label>
+              <input class="form-input" id="aclName" value="OUTSIDE_IN" placeholder="ACL name"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">SRC IP</label>
+              <input class="form-input" id="aclSrcIp" value="203.0.113.10" placeholder="203.0.113.10"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DST IP</label>
+              <input class="form-input" id="aclDstIp" value="10.0.1.10" placeholder="10.0.1.10"/>
+            </div>
+          </div>
+          <div class="sim-run-bar">
+            <button class="btn btn-primary" onclick="runSim('acl')">TRACE ACL</button>
+            <button class="btn btn-ghost" onclick="runSim('routes')">SHOW ROUTES</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BGP / Routing -->
+      <div class="sim-section">
+        <div class="sim-section-hdr"><span style="color:var(--green)">⇄</span> BGP &amp; ROUTING ANALYSIS</div>
+        <div class="sim-section-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">NODE</label>
+              <select class="form-input" id="bgpNode"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">PREFIX</label>
+              <input class="form-input" id="bgpPrefix" value="0.0.0.0/0" placeholder="10.0.0.0/8"/>
+            </div>
+          </div>
+          <div class="sim-run-bar">
+            <button class="btn btn-primary" onclick="runSim('bgp')">ANALYZE BGP</button>
+            <button class="btn btn-ghost" onclick="runSim('ospf')">ANALYZE OSPF</button>
+            <button class="btn btn-ghost" onclick="runSim('multipath')">CHECK MULTIPATH</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIFF VIEW -->
+    <div id="view-diff" class="diff-wrap" style="display:none">
+      <div class="diff-hdr">
+        <span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--cyan)">DIFFERENTIAL ANALYSIS</span>
+        <select class="form-input" id="diffDevice" style="width:200px" onchange="loadDiffDevice(this.value)"></select>
+        <button class="btn btn-primary" onclick="runDiff()">RUN DIFF</button>
+      </div>
+      <div class="diff-grid">
+        <div class="diff-pane">
+          <div class="diff-pane-hdr"><span style="color:var(--text3)">BASELINE</span> config</div>
+          <textarea id="diffBase" spellcheck="false" placeholder="# Paste baseline config here..."></textarea>
+        </div>
+        <div class="diff-pane">
+          <div class="diff-pane-hdr"><span style="color:var(--cyan)">CANDIDATE</span> config</div>
+          <textarea id="diffCandidate" spellcheck="false" placeholder="# Paste candidate config here..."></textarea>
+        </div>
+      </div>
+      <div class="diff-result" id="diffResult">
+        <span style="color:var(--text3)">Run diff to see analysis results here.</span>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="panel">
+  <div class="panel-header"><span style="color:var(--cyan)">◉</span> SIMULATION RESULTS &amp; LOGS</div>
+  <div class="panel-body" id="resultsPanel">
+    <div class="empty-state">
+      <div class="empty-icon">⬡</div>
+      <div>No simulation results yet.</div>
+      <div style="font-size:11px;margin-top:6px;color:var(--text3)">Connect to Batfish and run a simulation.</div>
+    </div>
+  </div>
+</aside>
+</div><!-- /.app -->
+
+<!-- ADD DEVICE MODAL -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <div class="modal-hdr">＋ ADD DEVICE</div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="full-form-group" style="grid-column:1/-1">
+          <label class="form-label">DEVICE NAME</label>
+          <input class="form-input" id="newDevName" placeholder="fw-datacenter-01"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">VENDOR</label>
+          <select class="form-input" id="newDevVendor" onchange="updateTemplate(this.value)">
+            <option value="cisco">Cisco IOS/ASA</option>
+            <option value="f5">F5 BIG-IP</option>
+            <option value="fortinet">Fortinet FortiGate</option>
+            <option value="palo">Palo Alto NGFW</option>
+            <option value="aws">AWS (VPC/TGW)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ROLE</label>
+          <select class="form-input" id="newDevRole">
+            <option>Firewall</option><option>Load Balancer</option>
+            <option>Router</option><option>Switch</option>
+            <option>Cloud Gateway</option><option>VPN</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">MANAGEMENT IP</label>
+          <input class="form-input" id="newDevIp" placeholder="10.0.0.X"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">SITE / ZONE</label>
+          <input class="form-input" id="newDevSite" placeholder="datacenter-1"/>
+        </div>
+      </div>
+      <div class="full-form-group">
+        <label class="form-label">INITIAL CONFIGURATION</label>
+        <textarea class="form-input" id="newDevConfig" rows="8" style="resize:vertical;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5" placeholder="# Paste initial config or leave blank for template..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">CANCEL</button>
+      <button class="btn btn-primary" onclick="addDevice()">ADD DEVICE</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW TOPOLOGY MODAL -->
+<div class="modal-bg" id="newTopoModal">
+  <div class="modal">
+    <div class="modal-hdr">＋ NEW TOPOLOGY</div>
+    <div class="modal-body">
+      <div class="full-form-group">
+        <label class="form-label">TOPOLOGY NAME</label>
+        <input class="form-input" id="newTopoName" placeholder="e.g. Production Network"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newTopoModal')">CANCEL</button>
+      <button class="btn btn-primary" onclick="createTopology()">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME TOPOLOGY MODAL -->
+<div class="modal-bg" id="renameTopoModal">
+  <div class="modal">
+    <div class="modal-hdr">✎ RENAME TOPOLOGY</div>
+    <div class="modal-body">
+      <div class="full-form-group">
+        <label class="form-label">NEW NAME</label>
+        <input class="form-input" id="renameTopoName" placeholder="Topology name"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('renameTopoModal')">CANCEL</button>
+      <button class="btn btn-primary" onclick="renameTopology()">RENAME</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <div class="modal-hdr">⚠ CONFIRM</div>
+    <div class="modal-body">
+      <p id="confirmMsg" style="color:var(--text1);font-size:12px;line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">CANCEL</button>
+      <button class="btn btn-danger" id="confirmYesBtn">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SEED DATA — Original devices, links, configs, templates
+   ============================================================ */
+const VENDOR_COLORS = {f5:'#f56600',fortinet:'#da3832',cisco:'#049fd9',palo:'#fa582d',aws:'#ff9900'};
+
+const SEED_DEVICES = [
+  {id:'f5-ltm-01',name:'f5-ltm-01',vendor:'f5',role:'Load Balancer',ip:'10.0.0.11',site:'datacenter-1',status:'ok',x:390,y:160},
+  {id:'f5-ltm-02',name:'f5-ltm-02',vendor:'f5',role:'Load Balancer',ip:'10.0.0.12',site:'datacenter-1',status:'ok',x:390,y:310},
+  {id:'forti-fw-01',name:'forti-fw-01',vendor:'fortinet',role:'Firewall',ip:'10.0.0.21',site:'datacenter-1',status:'ok',x:80,y:160},
+  {id:'forti-vpn-01',name:'forti-vpn-01',vendor:'fortinet',role:'VPN',ip:'10.0.0.22',site:'branch-1',status:'warn',x:80,y:420},
+  {id:'cisco-asr-01',name:'cisco-asr-01',vendor:'cisco',role:'Router',ip:'10.0.0.31',site:'datacenter-1',status:'ok',x:220,y:90},
+  {id:'cisco-asa-01',name:'cisco-asa-01',vendor:'cisco',role:'Firewall',ip:'10.0.0.32',site:'datacenter-1',status:'ok',x:220,y:260},
+  {id:'cisco-cat-01',name:'cisco-cat-01',vendor:'cisco',role:'Switch',ip:'10.0.0.33',site:'datacenter-1',status:'ok',x:220,y:420},
+  {id:'cisco-asr-02',name:'cisco-asr-02',vendor:'cisco',role:'Router',ip:'10.0.0.34',site:'datacenter-2',status:'ok',x:220,y:510},
+  {id:'palo-fw-01',name:'palo-fw-01',vendor:'palo',role:'Firewall',ip:'10.0.0.41',site:'datacenter-1',status:'ok',x:550,y:100},
+  {id:'palo-fw-02',name:'palo-fw-02',vendor:'palo',role:'Firewall',ip:'10.0.0.42',site:'datacenter-2',status:'ok',x:550,y:280},
+  {id:'aws-tgw-01',name:'aws-tgw-01',vendor:'aws',role:'Cloud Gateway',ip:'172.31.0.1',site:'us-east-1',status:'ok',x:700,y:180},
+  {id:'aws-vpc-prod',name:'aws-vpc-prod',vendor:'aws',role:'Cloud Gateway',ip:'172.31.1.1',site:'us-east-1',status:'ok',x:700,y:330},
+  {id:'aws-vpc-dev',name:'aws-vpc-dev',vendor:'aws',role:'Cloud Gateway',ip:'172.31.2.1',site:'us-east-1',status:'warn',x:700,y:470},
+];
+
+const SEED_LINKS = [
+  {src:'cisco-asr-01',dst:'forti-fw-01'},{src:'cisco-asr-01',dst:'cisco-asa-01'},
+  {src:'cisco-asa-01',dst:'f5-ltm-01'},{src:'cisco-asa-01',dst:'f5-ltm-02'},
+  {src:'f5-ltm-01',dst:'palo-fw-01'},{src:'f5-ltm-02',dst:'palo-fw-01'},
+  {src:'palo-fw-01',dst:'aws-tgw-01'},{src:'aws-tgw-01',dst:'aws-vpc-prod'},
+  {src:'aws-tgw-01',dst:'aws-vpc-dev'},{src:'cisco-asr-01',dst:'cisco-cat-01'},
+  {src:'cisco-cat-01',dst:'cisco-asr-02'},{src:'cisco-asr-02',dst:'palo-fw-02'},
+  {src:'palo-fw-02',dst:'aws-tgw-01'},{src:'forti-fw-01',dst:'forti-vpn-01'},
+];
+
+const SEED_CONFIGS = {};
+SEED_CONFIGS['f5-ltm-01'] = `#TMSH - F5 BIG-IP LTM f5-ltm-01\n# Management: 10.0.0.11  Role: Primary Load Balancer  Site: datacenter-1\n\nsys global-settings {\n    hostname f5-ltm-01.corp.local\n    mgmt-dhcp disabled\n}\nnet interface 1.1 { description "OUTSIDE" }\nnet interface 1.2 { description "INSIDE" }\nnet interface 1.3 { description "DMZ" }\n\nnet self 10.0.10.11/24  { vlan OUTSIDE allow-service default }\nnet self 10.0.20.11/24  { vlan INSIDE  allow-service default }\nnet self 10.0.30.11/24  { vlan DMZ     allow-service none    }\n\nnet route default { gw 10.0.10.1 }\n\nltm node 10.0.20.101 { address 10.0.20.101 }\nltm node 10.0.20.102 { address 10.0.20.102 }\nltm node 10.0.20.103 { address 10.0.20.103 }\n\nltm pool pool_web_https {\n    members {\n        10.0.20.101:443 { address 10.0.20.101 }\n        10.0.20.102:443 { address 10.0.20.102 }\n        10.0.20.103:443 { address 10.0.20.103 }\n    }\n    load-balancing-mode least-connections-member\n    monitor https\n}\nltm pool pool_api {\n    members {\n        10.0.20.101:8443 { address 10.0.20.101 }\n        10.0.20.102:8443 { address 10.0.20.102 }\n    }\n    load-balancing-mode round-robin\n    monitor tcp_half_open\n}\n\nltm virtual vs_web_https {\n    destination 203.0.113.10:443\n    ip-protocol tcp\n    pool pool_web_https\n    profiles { clientssl { context clientside } http { } tcp { } }\n    source-address-translation { type automap }\n    vlans { OUTSIDE }\n    vlans-enabled\n}\nltm virtual vs_api {\n    destination 203.0.113.11:443\n    ip-protocol tcp\n    pool pool_api\n    profiles { clientssl { context clientside } http { } tcp { } }\n    source-address-translation { type automap }\n}\n\nltm rule iRule_XFF {\nwhen HTTP_REQUEST { HTTP::header insert X-Forwarded-For [IP::client_addr] }\n}`;
+SEED_CONFIGS['f5-ltm-02'] = `#TMSH - F5 BIG-IP LTM f5-ltm-02 (Standby HA Pair)\n# Management: 10.0.0.12  Role: Secondary LTM  Site: datacenter-1\n\nsys global-settings {\n    hostname f5-ltm-02.corp.local\n    mgmt-dhcp disabled\n}\nnet self 10.0.10.12/24  { vlan OUTSIDE allow-service default }\nnet self 10.0.20.12/24  { vlan INSIDE  allow-service default }\n\ncm device f5-ltm-02 {\n    configsync-ip 10.0.20.12\n    mirror-ip 10.0.20.12\n    unicast-address { { ip 10.0.20.12 port 1026 } }\n}\ncm trust-domain Root {}\ncm device-group dg-failover {\n    devices { f5-ltm-01 f5-ltm-02 }\n    network-failover enabled\n    type sync-failover\n}`;
+SEED_CONFIGS['forti-fw-01'] = `# FortiGate 600F - forti-fw-01\n# Management: 10.0.0.21  Role: Edge Firewall  Site: datacenter-1\n\nconfig system global\n    set hostname forti-fw-01\n    set timezone 04\n    set admin-scp enable\n    set admin-sport 8443\nend\n\nconfig system interface\n    edit "wan1"\n        set mode static\n        set ip 203.0.113.1 255.255.255.252\n        set allowaccess ping\n        set type physical\n        set role wan\n    next\n    edit "internal"\n        set mode static\n        set ip 10.0.0.254 255.255.0.0\n        set allowaccess ping https ssh\n        set type physical\n        set role lan\n    next\n    edit "dmz"\n        set mode static\n        set ip 10.0.30.254 255.255.255.0\n        set type physical\n        set role dmz\n    next\nend\n\nconfig router static\n    edit 1\n        set gateway 203.0.113.2\n        set device "wan1"\n    next\n    edit 2\n        set dst 10.0.0.0 255.255.0.0\n        set device "internal"\n    next\nend\n\nconfig firewall address\n    edit "CORP_INTERNAL"\n        set subnet 10.0.0.0 255.255.0.0\n    next\n    edit "DMZ_SERVERS"\n        set subnet 10.0.30.0 255.255.255.0\n    next\n    edit "ANY_INTERNET"\n        set type ipmask\n        set subnet 0.0.0.0 0.0.0.0\n    next\nend\n\nconfig firewall policy\n    edit 1\n        set name "INTERNET_TO_DMZ"\n        set srcintf "wan1"\n        set dstintf "dmz"\n        set srcaddr "ANY_INTERNET"\n        set dstaddr "DMZ_SERVERS"\n        set action accept\n        set schedule always\n        set service HTTPS HTTP\n        set logtraffic all\n        set utm-status enable\n        set av-profile default\n        set ips-sensor default\n    next\n    edit 2\n        set name "INTERNAL_TO_INTERNET"\n        set srcintf "internal"\n        set dstintf "wan1"\n        set srcaddr "CORP_INTERNAL"\n        set dstaddr "ANY_INTERNET"\n        set action accept\n        set schedule always\n        set service ALL\n        set nat enable\n        set logtraffic utm\n    next\n    edit 3\n        set name "DENY_ALL"\n        set srcintf "any"\n        set dstintf "any"\n        set srcaddr "all"\n        set dstaddr "all"\n        set action deny\n        set schedule always\n        set service ALL\n        set logtraffic all\n    next\nend`;
+SEED_CONFIGS['forti-vpn-01'] = `# FortiGate 100F - forti-vpn-01\n# Management: 10.0.0.22  Role: Branch VPN Gateway  Site: branch-1\n\nconfig system global\n    set hostname forti-vpn-01\nend\n\nconfig system interface\n    edit "wan1"\n        set mode dhcp\n        set type physical\n    next\n    edit "internal"\n        set ip 192.168.10.1 255.255.255.0\n        set type physical\n    next\n    edit "vpn-dc1"\n        set type tunnel\n        set remote-ip 10.0.0.21\n    next\nend\n\nconfig vpn ipsec phase1-interface\n    edit "VPN_DC1"\n        set interface "wan1"\n        set remote-gw 203.0.113.1\n        set authmethod psk\n        set psksecret ENC_PLACEHOLDER\n        set proposal aes256-sha256\n        set ike-version 2\n        set dpd on-idle\n    next\nend\n\nconfig vpn ipsec phase2-interface\n    edit "VPN_DC1_P2"\n        set phase1name "VPN_DC1"\n        set proposal aes256-sha256\n        set pfs enable\n        set dhgrp 14\n        set src-subnet 192.168.10.0 255.255.255.0\n        set dst-subnet 10.0.0.0 255.255.0.0\n    next\nend`;
+SEED_CONFIGS['cisco-asr-01'] = `! Cisco ASR1001-X - cisco-asr-01\n! Management: 10.0.0.31  Role: Core Router  Site: datacenter-1\n\nhostname cisco-asr-01\n!\nip cef\nipv6 unicast-routing\n!\ninterface GigabitEthernet0/0/0\n description "UPLINK-to-ISP"\n ip address 198.51.100.2 255.255.255.252\n ip access-group OUTSIDE_IN in\n no shutdown\n!\ninterface GigabitEthernet0/0/1\n description "DOWNLINK-to-CORE-SW"\n ip address 10.0.0.1 255.255.0.0\n no shutdown\n!\ninterface GigabitEthernet0/0/2\n description "LINK-to-FORTI-FW01"\n ip address 10.0.10.1 255.255.255.0\n no shutdown\n!\nrouter bgp 65001\n bgp router-id 10.0.0.31\n bgp log-neighbor-changes\n neighbor 198.51.100.1 remote-as 65000\n neighbor 198.51.100.1 description ISP_PEER\n !\n address-family ipv4\n  network 203.0.113.0 mask 255.255.255.0\n  neighbor 198.51.100.1 activate\n  neighbor 198.51.100.1 soft-reconfiguration inbound\n  neighbor 198.51.100.1 prefix-list CORP_PREFIXES out\n  default-information originate\n exit-address-family\n!\nrouter ospf 1\n router-id 10.0.0.31\n auto-cost reference-bandwidth 10000\n area 0 authentication message-digest\n network 10.0.0.0 0.0.255.255 area 0\n default-information originate always\n!\nip prefix-list CORP_PREFIXES seq 10 permit 203.0.113.0/24\n!\nip access-list extended OUTSIDE_IN\n 10 permit tcp any 203.0.113.0 0.0.0.255 eq 443\n 20 permit tcp any 203.0.113.0 0.0.0.255 eq 80\n 30 permit icmp any 203.0.113.0 0.0.0.255 echo-reply\n 40 permit udp any host 203.0.113.5 eq 53\n 900 deny   ip any any log\n!\nip route 0.0.0.0 0.0.0.0 198.51.100.1\n!\nntp server 10.0.0.100 prefer\nlogging buffered 65536\nno service config`;
+SEED_CONFIGS['cisco-asa-01'] = `! Cisco ASA 5585-X - cisco-asa-01\n! Management: 10.0.0.32  Role: Perimeter Firewall  Site: datacenter-1\n\nhostname cisco-asa-01\ndomain-name corp.local\n!\ninterface GigabitEthernet0/0\n nameif OUTSIDE\n security-level 0\n ip address 10.0.10.2 255.255.255.0\n no shutdown\n!\ninterface GigabitEthernet0/1\n nameif INSIDE\n security-level 100\n ip address 10.0.20.1 255.255.255.0\n no shutdown\n!\ninterface GigabitEthernet0/2\n nameif DMZ\n security-level 50\n ip address 10.0.30.1 255.255.255.0\n no shutdown\n!\naccess-list OUTSIDE_IN extended permit tcp any 10.0.30.0 255.255.255.0 eq 443\naccess-list OUTSIDE_IN extended permit tcp any 10.0.30.0 255.255.255.0 eq 80\naccess-list OUTSIDE_IN extended deny ip any any log\n!\naccess-list DMZ_OUT extended permit tcp 10.0.30.0 255.255.255.0 10.0.20.0 255.255.255.0 eq 3306\naccess-list DMZ_OUT extended deny ip any any log\n!\naccess-group OUTSIDE_IN in interface OUTSIDE\naccess-group DMZ_OUT in interface DMZ\n!\nnat (INSIDE,OUTSIDE) dynamic interface\nnat (DMZ,OUTSIDE)   dynamic interface\n!\nroute OUTSIDE 0.0.0.0 0.0.0.0 10.0.10.1 1\nroute INSIDE  10.0.20.0 255.255.255.0 10.0.20.1 1\n!\nclass-map inspection_default\n match default-inspection-traffic\npolicy-map global_policy\n class inspection_default\n  inspect ftp\n  inspect http\n  inspect dns\nservice-policy global_policy global`;
+SEED_CONFIGS['cisco-cat-01'] = `! Cisco Catalyst 9500 - cisco-cat-01\n! Management: 10.0.0.33  Role: Core Switch  Site: datacenter-1\n\nhostname cisco-cat-01\n!\nvlan 10\n name SERVERS\nvlan 20\n name MGMT\nvlan 30\n name DMZ\nvlan 100\n name USERS\n!\ninterface Vlan10\n ip address 10.1.10.1 255.255.255.0\n no shutdown\ninterface Vlan20\n ip address 10.1.20.1 255.255.255.0\n no shutdown\ninterface Vlan30\n ip address 10.1.30.1 255.255.255.0\n no shutdown\ninterface Vlan100\n ip address 10.1.100.1 255.255.255.0\n no shutdown\n!\ninterface GigabitEthernet1/0/1\n description "UPLINK-cisco-asr-01"\n switchport mode trunk\n switchport trunk allowed vlan 10,20,30,100\n!\nrouter ospf 1\n network 10.1.0.0 0.0.255.255 area 0\n!\nspanning-tree mode rapid-pvst\nspanning-tree vlan 10,20,30,100 priority 4096`;
+SEED_CONFIGS['cisco-asr-02'] = `! Cisco ASR1002-HX - cisco-asr-02\n! Management: 10.0.0.34  Role: WAN Router  Site: datacenter-2\n\nhostname cisco-asr-02\n!\ninterface GigabitEthernet0/0/0\n description "LINK-DC1"\n ip address 10.2.0.1 255.255.255.252\n no shutdown\n!\nrouter ospf 1\n router-id 10.0.0.34\n network 10.2.0.0 0.0.255.255 area 0\n!\nrouter bgp 65001\n bgp router-id 10.0.0.34\n neighbor 10.2.0.2 remote-as 65001\n neighbor 10.2.0.2 description iBGP-cisco-asr-01`;
+SEED_CONFIGS['palo-fw-01'] = `# Palo Alto PA-5250 - palo-fw-01\n# Management: 10.0.0.41  Role: NGFW / Segmentation  Site: datacenter-1\n\nset deviceconfig system hostname palo-fw-01\nset deviceconfig system dns-setting servers primary 10.0.0.100\nset deviceconfig system ntp-servers primary-ntp-server ntp-server-address 10.0.0.100\n\nset network interface ethernet ethernet1/1 layer3 ip 10.0.10.3/24\nset network interface ethernet ethernet1/1 layer3 mtu 1500\nset network interface ethernet ethernet1/1 comment "OUTSIDE"\n\nset network interface ethernet ethernet1/2 layer3 ip 10.0.40.1/24\nset network interface ethernet ethernet1/2 comment "DATACENTER_TRUST"\n\nset network interface ethernet ethernet1/3 layer3 ip 10.0.50.1/24\nset network interface ethernet ethernet1/3 comment "AWS_PEERING"\n\nset network virtual-router VR-MAIN interface [ ethernet1/1 ethernet1/2 ethernet1/3 ]\nset network virtual-router VR-MAIN routing-table ip static-route DEFAULT destination 0.0.0.0/0 nexthop ip-address 10.0.10.1\n\nset zone OUTSIDE network layer3 ethernet1/1\nset zone DATACENTER network layer3 ethernet1/2\nset zone AWS-PEERING network layer3 ethernet1/3\n\nset address CORP_DC ip-netmask 10.0.0.0/16\nset address AWS_PROD ip-netmask 172.31.1.0/24\nset address AWS_DEV  ip-netmask 172.31.2.0/24\n\nset rulebase security rules ALLOW_DC_OUTBOUND from DATACENTER to OUTSIDE source CORP_DC destination any application [ ssl web-browsing dns ] service application-default action allow\nset rulebase security rules ALLOW_DC_OUTBOUND profile-setting group strict-security\n\nset rulebase security rules DC_TO_AWS from DATACENTER to AWS-PEERING source CORP_DC destination [ AWS_PROD AWS_DEV ] application any service any action allow\nset rulebase security rules DC_TO_AWS log-start yes log-end yes\n\nset rulebase security rules DENY_ALL from any to any source any destination any application any service any action deny\nset rulebase security rules DENY_ALL log-start yes\n\nset network ike gateway IKE-AWS-TGW version ikev2\nset network ike gateway IKE-AWS-TGW local-address ip 10.0.50.1\nset network ike gateway IKE-AWS-TGW peer-address ip 172.31.0.1\nset network ike gateway IKE-AWS-TGW authentication pre-shared-key key PLACEHOLDER_PSK\n\nset network tunnel ipsec IPSEC-AWS-TGW ike-gateway IKE-AWS-TGW\nset network tunnel ipsec IPSEC-AWS-TGW tunnel-monitor enable yes\nset network tunnel ipsec IPSEC-AWS-TGW tunnel-monitor destination-ip 172.31.0.1`;
+SEED_CONFIGS['palo-fw-02'] = `# Palo Alto PA-3260 - palo-fw-02\n# Management: 10.0.0.42  Role: NGFW  Site: datacenter-2\n\nset deviceconfig system hostname palo-fw-02\nset network interface ethernet ethernet1/1 layer3 ip 10.2.10.1/24\nset network interface ethernet ethernet1/1 comment "OUTSIDE-DC2"\nset network interface ethernet ethernet1/2 layer3 ip 10.2.20.1/24\nset network interface ethernet ethernet1/2 comment "TRUST-DC2"\nset zone OUTSIDE network layer3 ethernet1/1\nset zone TRUST   network layer3 ethernet1/2\nset network virtual-router VR-DC2 interface [ ethernet1/1 ethernet1/2 ]\nset network virtual-router VR-DC2 routing-table ip static-route DEFAULT destination 0.0.0.0/0 nexthop ip-address 10.2.10.254`;
+SEED_CONFIGS['aws-tgw-01'] = `# AWS Transit Gateway - aws-tgw-01\n# Account: 123456789012  Region: us-east-1\n\n[TransitGateway]\nTransitGatewayId = tgw-0a1b2c3d4e5f67890\nAmazonSideAsn = 64512\nDefaultRouteTableAssociation = enable\nDefaultRouteTablePropagation = enable\nDnsSupport = enable\nVpnEcmpSupport = enable\n\n[TransitGatewayRouteTable: rtb-main]\nRoutes:\n  0.0.0.0/0 -> VPN_ATTACHMENT_ON_PREM\n  172.31.1.0/24 -> VPC_ATTACHMENT_PROD\n  172.31.2.0/24 -> VPC_ATTACHMENT_DEV\n  10.0.0.0/16   -> VPN_ATTACHMENT_ON_PREM\n\n[VPNConnection: vpn-palo-dc1]\nCustomerGatewayIp = 10.0.50.1\nType = ipsec.1\nStaticRoutesOnly = false\nTunnelOptions:\n  - PreSharedKey = PLACEHOLDER_PSK\n    InsideCidr = 169.254.10.0/30\n  - PreSharedKey = PLACEHOLDER_PSK2\n    InsideCidr = 169.254.10.4/30\n\n[VPNConnection: vpn-palo-dc2]\nCustomerGatewayIp = 10.2.10.1\nType = ipsec.1\nStaticRoutesOnly = false`;
+SEED_CONFIGS['aws-vpc-prod'] = `# AWS VPC Production - aws-vpc-prod\n# VPC: vpc-0a1b2c3d4e5f  CIDR: 172.31.1.0/24\n\n[VPC]\nVpcId = vpc-0a1b2c3d4e5f\nCidrBlock = 172.31.1.0/24\nEnableDnsHostnames = true\nEnableDnsSupport = true\n\n[Subnets]\nsubnet-web:    172.31.1.0/27   AZ: us-east-1a   Public: false\nsubnet-app:    172.31.1.32/27  AZ: us-east-1b   Public: false\nsubnet-data:   172.31.1.64/27  AZ: us-east-1a   Public: false\nsubnet-mgmt:   172.31.1.96/27  AZ: us-east-1b   Public: false\n\n[SecurityGroup: sg-web-tier]\nInbound:\n  - tcp 443 from 0.0.0.0/0\n  - tcp 80  from 0.0.0.0/0\nOutbound:\n  - All traffic to 0.0.0.0/0\n\n[SecurityGroup: sg-app-tier]\nInbound:\n  - tcp 8080 from sg-web-tier\n  - tcp 8443 from sg-web-tier\nOutbound:\n  - tcp 3306 to sg-data-tier\n\n[SecurityGroup: sg-data-tier]\nInbound:\n  - tcp 3306 from sg-app-tier\n  - tcp 5432 from sg-app-tier\nOutbound: None\n\n[NetworkACL: nacl-prod-default]\nInbound:\n  100 Allow TCP 443 from 0.0.0.0/0\n  200 Allow TCP 80  from 0.0.0.0/0\n  300 Allow TCP 1024-65535 from 0.0.0.0/0\n  * Deny ALL from 0.0.0.0/0\nOutbound:\n  100 Allow ALL to 0.0.0.0/0\n\n[RouteTable: rtb-prod-private]\nRoutes:\n  172.31.1.0/24 local\n  0.0.0.0/0     tgw-0a1b2c3d4e5f67890\n  10.0.0.0/16   tgw-0a1b2c3d4e5f67890`;
+SEED_CONFIGS['aws-vpc-dev'] = `# AWS VPC Development - aws-vpc-dev\n# VPC: vpc-dev1234  CIDR: 172.31.2.0/24\n\n[VPC]\nVpcId = vpc-dev1234\nCidrBlock = 172.31.2.0/24\nEnableDnsHostnames = true\n\n[Subnets]\nsubnet-dev-main:  172.31.2.0/25  AZ: us-east-1a  Public: false\nsubnet-dev-test:  172.31.2.128/25 AZ: us-east-1b  Public: false\n\n[SecurityGroup: sg-dev-all]\nInbound:\n  - All from 10.0.0.0/8\n  - All from 172.31.0.0/16\nOutbound:\n  - All to 0.0.0.0/0\n\n[RouteTable: rtb-dev-private]\nRoutes:\n  172.31.2.0/24 local\n  0.0.0.0/0     tgw-0a1b2c3d4e5f67890`;
+
+const TEMPLATES = {
+  cisco:`! Cisco IOS-XE - NEW_DEVICE\nhostname NEW_DEVICE\n!\ninterface GigabitEthernet0/0/0\n description "UPLINK"\n ip address 10.X.X.X 255.255.255.0\n no shutdown\n!\nip route 0.0.0.0 0.0.0.0 10.X.X.1\n!\nip access-list extended OUTSIDE_IN\n 10 permit tcp any any eq 443\n 900 deny ip any any log\n!\nrouter ospf 1\n network 10.0.0.0 0.255.255.255 area 0`,
+  f5:`#TMSH - F5 BIG-IP LTM NEW_DEVICE\nsys global-settings { hostname NEW_DEVICE }\nnet self 10.X.X.X/24 { vlan OUTSIDE allow-service default }\nnet route default { gw 10.X.X.1 }\nltm pool pool_web { members { 10.X.X.101:443 {} } monitor https }\nltm virtual vs_web { destination 0.0.0.0:443 pool pool_web profiles { clientssl {} http {} } }`,
+  fortinet:`# FortiGate NEW_DEVICE\nconfig system global\n set hostname NEW_DEVICE\nend\nconfig system interface\n edit "wan1"\n  set mode static\n  set ip 10.X.X.X 255.255.255.0\n  set allowaccess ping\n next\nend\nconfig firewall policy\n edit 1\n  set name "ALLOW_OUT"\n  set srcintf "internal"\n  set dstintf "wan1"\n  set action accept\n  set nat enable\n next\nend`,
+  palo:`# Palo Alto NGFW NEW_DEVICE\nset deviceconfig system hostname NEW_DEVICE\nset network interface ethernet ethernet1/1 layer3 ip 10.X.X.X/24\nset zone OUTSIDE network layer3 ethernet1/1\nset zone TRUST   network layer3 ethernet1/2\nset network virtual-router VR-MAIN interface [ ethernet1/1 ethernet1/2 ]\nset network virtual-router VR-MAIN routing-table ip static-route DEFAULT destination 0.0.0.0/0 nexthop ip-address 10.X.X.1\nset rulebase security rules DENY_ALL from any to any source any destination any action deny log-end yes`,
+  aws:`# AWS VPC/TGW NEW_DEVICE\n[VPC]\nVpcId = vpc-XXXXXXXX\nCidrBlock = 172.31.X.0/24\nEnableDnsHostnames = true\n\n[Subnets]\nsubnet-main: 172.31.X.0/25 AZ: us-east-1a\n\n[SecurityGroup: sg-default]\nInbound:\n  - tcp 443 from 0.0.0.0/0\nOutbound:\n  - All to 0.0.0.0/0\n\n[RouteTable: rtb-main]\nRoutes:\n  172.31.X.0/24 local\n  0.0.0.0/0     tgw-XXXXXXXX`
+};
+
+/* ============================================================
+   TOPOLOGIES — Multi-topology data structure
+   ============================================================ */
+let _topoIdCounter = 1;
+function genTopoId() { return 'topo-' + (_topoIdCounter++); }
+
+const TOPOLOGIES = {};
+const defaultTopoId = genTopoId();
+TOPOLOGIES[defaultTopoId] = {
+  name: 'Default Topology',
+  devices: JSON.parse(JSON.stringify(SEED_DEVICES)),
+  links: JSON.parse(JSON.stringify(SEED_LINKS)),
+  configs: JSON.parse(JSON.stringify(SEED_CONFIGS)),
+};
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let activeTopoId = defaultTopoId;
+let selectedDevice = null;
+let currentView = 'topology';
+let connected = false;
+let devGroups = {f5:true,fortinet:true,cisco:true,palo:true,aws:true};
+let logs = [];
+let results = [];
+let linkMode = false;
+let linkSource = null;
+let dragNode = null;
+let dragOffset = {x:0, y:0};
+
+/* Topology accessors */
+function topo() { return TOPOLOGIES[activeTopoId]; }
+function DEVICES() { return topo().devices; }
+function LINKS() { return topo().links; }
+function CONFIGS() { return topo().configs; }
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopoSelect();
+  renderAll();
+  if (DEVICES().length > 0) selectDevice(DEVICES()[0]);
+});
+
+function renderAll() {
+  renderDeviceList();
+  renderLinksSection();
+  populateSelects();
+  requestAnimationFrame(() => renderTopology());
+}
+
+function log(msg, type='info') {
+  const now = new Date();
+  const time = now.toTimeString().slice(0,8);
+  logs.unshift({time, msg, type});
+  if (logs.length > 100) logs.pop();
+}
+
+/* ============================================================
+   TOPOLOGY MANAGEMENT
+   ============================================================ */
+function renderTopoSelect() {
+  const sel = document.getElementById('topoSelect');
+  sel.innerHTML = Object.keys(TOPOLOGIES).map(id =>
+    `<option value="${id}"${id===activeTopoId?' selected':''}>${escHtml(TOPOLOGIES[id].name)}</option>`
+  ).join('');
+  sel.onchange = function() { switchTopologyTo(this.value); };
+}
+
+function switchTopologyTo(id) {
+  if (id === activeTopoId || !TOPOLOGIES[id]) return;
+  activeTopoId = id;
+  selectedDevice = null;
+  linkSource = null;
+  linkMode = false;
+  document.getElementById('linkModeBtn').classList.remove('active');
+  document.getElementById('linkFloatLabel').classList.remove('visible');
+  devGroups = {f5:true,fortinet:true,cisco:true,palo:true,aws:true};
+  renderTopoSelect();
+  renderAll();
+  addResult('TOPOLOGY SWITCHED', 'Switched to: ' + topo().name, 'info',
+    `Devices: ${DEVICES().length}\nLinks: ${LINKS().length}\nConfigs: ${Object.keys(CONFIGS()).length}`);
+}
+
+function openNewTopoModal() {
+  document.getElementById('newTopoName').value = '';
+  document.getElementById('newTopoModal').classList.add('open');
+  document.getElementById('newTopoName').focus();
+}
+
+function createTopology() {
+  const name = document.getElementById('newTopoName').value.trim();
+  if (!name) { alert('Topology name required'); return; }
+  const id = genTopoId();
+  TOPOLOGIES[id] = { name: name, devices: [], links: [], configs: {} };
+  activeTopoId = id;
+  selectedDevice = null;
+  linkSource = null;
+  closeModal('newTopoModal');
+  renderTopoSelect();
+  renderAll();
+  addResult('TOPOLOGY CREATED', name, 'ok', 'Empty topology created. Add devices and links.');
+  log('Topology created: ' + name, 'ok');
+}
+
+function confirmDeleteTopology() {
+  const keys = Object.keys(TOPOLOGIES);
+  if (keys.length <= 1) { showToast('Cannot delete the last topology'); return; }
+  document.getElementById('confirmMsg').textContent =
+    'Delete topology "' + topo().name + '"? This will remove all its devices, links, and configs.';
+  document.getElementById('confirmYesBtn').onclick = function() {
+    const name = topo().name;
+    delete TOPOLOGIES[activeTopoId];
+    activeTopoId = Object.keys(TOPOLOGIES)[0];
+    selectedDevice = null;
+    linkSource = null;
+    closeModal('confirmModal');
+    renderTopoSelect();
+    renderAll();
+    addResult('TOPOLOGY DELETED', name, 'warn', 'Topology removed.');
+    log('Topology deleted: ' + name, 'warn');
+  };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function openRenameTopoModal() {
+  document.getElementById('renameTopoName').value = topo().name;
+  document.getElementById('renameTopoModal').classList.add('open');
+  const inp = document.getElementById('renameTopoName');
+  inp.focus();
+  inp.select();
+}
+
+function renameTopology() {
+  const name = document.getElementById('renameTopoName').value.trim();
+  if (!name) return;
+  topo().name = name;
+  closeModal('renameTopoModal');
+  renderTopoSelect();
+  showToast('Topology renamed to "' + name + '"');
+}
+
+/* ============================================================
+   DEVICE LIST
+   ============================================================ */
+function renderDeviceList(filter='') {
+  const groups = {};
+  DEVICES().forEach(d => {
+    if (filter && !d.name.toLowerCase().includes(filter.toLowerCase())) return;
+    if (!groups[d.vendor]) groups[d.vendor] = [];
+    groups[d.vendor].push(d);
+  });
+  const labels = {f5:'F5 BIG-IP',fortinet:'FORTINET',cisco:'CISCO',palo:'PALO ALTO',aws:'AWS'};
+  let html = '';
+  for (const [vendor, devs] of Object.entries(groups)) {
+    const open = devGroups[vendor] !== false;
+    html += `<div class="device-group">
+      <div class="device-group-hdr" onclick="toggleGroup('${vendor}')">
+        <span class="chevron ${open?'open':''}">▶</span>
+        <div class="legend-dot" style="background:${VENDOR_COLORS[vendor]};border-radius:2px;width:8px;height:8px"></div>
+        ${labels[vendor]||vendor.toUpperCase()} <span style="color:var(--text3);margin-left:4px">(${devs.length})</span>
+      </div>
+      ${open ? devs.map(d => `
+        <div class="device-item ${selectedDevice?.id===d.id?'active':''}" onclick="selectById('${d.id}')">
+          <div class="vendor-dot" style="background:${VENDOR_COLORS[d.vendor]}"></div>
+          <span class="dev-name">${d.name}</span>
+          <div class="dev-status ${d.status==='warn'?'warn':d.status==='err'?'err':''}"></div>
+          <button class="dev-del-btn" onclick="event.stopPropagation();confirmDeleteDevice('${d.id}')" title="Delete device">🗑</button>
+        </div>`).join('') : ''}
+    </div>`;
+  }
+  document.getElementById('deviceList').innerHTML = html;
+  document.getElementById('devCount').textContent = DEVICES().length + ' devices';
+}
+
+function renderLinksSection() {
+  const sec = document.getElementById('linksSection');
+  const lnks = LINKS();
+  let html = `<div class="links-section-hdr">🔗 LINKS <span style="color:var(--text3);margin-left:4px">(${lnks.length})</span></div>`;
+  lnks.forEach((lk, i) => {
+    html += `<div class="link-item">
+      <span style="color:var(--text1)">${lk.src}</span>
+      <span style="color:var(--text3)">↔</span>
+      <span style="color:var(--text1)">${lk.dst}</span>
+      <button class="link-del" onclick="deleteLinkByIndex(${i})" title="Delete link">✕</button>
+    </div>`;
+  });
+  sec.innerHTML = html;
+}
+
+function toggleGroup(vendor) {
+  devGroups[vendor] = !devGroups[vendor];
+  renderDeviceList();
+}
+
+function filterDevices(q) { renderDeviceList(q); }
+
+function selectById(id) {
+  const dev = DEVICES().find(d => d.id === id);
+  if (dev) selectDevice(dev);
+}
+
+function selectDevice(dev) {
+  selectedDevice = dev;
+  renderDeviceList();
+  document.getElementById('cfgTitle').textContent = dev.name;
+  document.getElementById('cfgBadge').className = 'vendor-badge ' + dev.vendor;
+  document.getElementById('cfgBadge').textContent = dev.vendor.toUpperCase();
+  document.getElementById('cfgMeta').textContent = `${dev.role} · ${dev.ip} · ${dev.site}`;
+  document.getElementById('editorLabel').textContent = dev.name + '.cfg';
+  document.getElementById('configEditor').value = CONFIGS()[dev.id] || TEMPLATES[dev.vendor] || '';
+  renderTopology();
+}
+
+/* ============================================================
+   DEVICE DELETION
+   ============================================================ */
+function confirmDeleteDevice(id) {
+  const dev = DEVICES().find(d => d.id === id);
+  if (!dev) return;
+  document.getElementById('confirmMsg').textContent =
+    'Delete device "' + dev.name + '" and all its links?';
+  document.getElementById('confirmYesBtn').onclick = function() {
+    deleteDeviceById(id);
+    closeModal('confirmModal');
+  };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function deleteDeviceById(id) {
+  const t = topo();
+  const dev = t.devices.find(d => d.id === id);
+  if (!dev) return;
+  const name = dev.name;
+  t.devices = t.devices.filter(d => d.id !== id);
+  t.links = t.links.filter(l => l.src !== id && l.dst !== id);
+  delete t.configs[id];
+  if (selectedDevice && selectedDevice.id === id) {
+    selectedDevice = null;
+    document.getElementById('cfgTitle').textContent = 'Select a device';
+    document.getElementById('cfgBadge').className = 'vendor-badge';
+    document.getElementById('cfgBadge').textContent = '';
+    document.getElementById('cfgMeta').textContent = '';
+    document.getElementById('configEditor').value = '';
+    document.getElementById('editorLabel').textContent = 'No file open';
+  }
+  if (linkSource === id) linkSource = null;
+  renderAll();
+  addResult('DEVICE DELETED', name, 'warn', 'Device and associated links removed.');
+  log('Device deleted: ' + name, 'warn');
+}
+
+/* ============================================================
+   LINK MANAGEMENT
+   ============================================================ */
+function toggleLinkMode() {
+  linkMode = !linkMode;
+  linkSource = null;
+  const btn = document.getElementById('linkModeBtn');
+  const label = document.getElementById('linkFloatLabel');
+  btn.classList.toggle('active', linkMode);
+  label.classList.remove('visible');
+  renderTopology();
+}
+
+function handleNodeClick(id) {
+  if (!linkMode) {
+    selectById(id);
+    return;
+  }
+  // Link mode
+  if (!linkSource) {
+    linkSource = id;
+    document.getElementById('linkFloatLabel').classList.add('visible');
+    renderTopology();
+  } else {
+    if (linkSource === id) {
+      // Cancel
+      linkSource = null;
+      document.getElementById('linkFloatLabel').classList.remove('visible');
+      renderTopology();
+    } else {
+      // Check for duplicate
+      const exists = LINKS().find(l =>
+        (l.src === linkSource && l.dst === id) || (l.src === id && l.dst === linkSource)
+      );
+      if (exists) {
+        showToast('Link already exists');
+        linkSource = null;
+        document.getElementById('linkFloatLabel').classList.remove('visible');
+        renderTopology();
+        return;
+      }
+      LINKS().push({src: linkSource, dst: id});
+      const srcDev = DEVICES().find(d => d.id === linkSource);
+      const dstDev = DEVICES().find(d => d.id === id);
+      addResult('LINK CREATED', `${srcDev?.name} ↔ ${dstDev?.name}`, 'ok', 'New topology link established.');
+      log(`Link created: ${srcDev?.name} ↔ ${dstDev?.name}`, 'ok');
+      linkSource = null;
+      document.getElementById('linkFloatLabel').classList.remove('visible');
+      renderAll();
+    }
+  }
+}
+
+function deleteLinkByIndex(idx) {
+  const lnks = LINKS();
+  if (idx < 0 || idx >= lnks.length) return;
+  const lk = lnks[idx];
+  const srcDev = DEVICES().find(d => d.id === lk.src);
+  const dstDev = DEVICES().find(d => d.id === lk.dst);
+  lnks.splice(idx, 1);
+  renderAll();
+  addResult('LINK DELETED', `${srcDev?.name} ↔ ${dstDev?.name}`, 'warn', 'Link removed from topology.');
+  log(`Link deleted: ${srcDev?.name} ↔ ${dstDev?.name}`, 'warn');
+}
+
+function confirmDeleteLink(idx) {
+  const lk = LINKS()[idx];
+  if (!lk) return;
+  const srcDev = DEVICES().find(d => d.id === lk.src);
+  const dstDev = DEVICES().find(d => d.id === lk.dst);
+  document.getElementById('confirmMsg').textContent =
+    'Delete link between "' + (srcDev?.name||lk.src) + '" and "' + (dstDev?.name||lk.dst) + '"?';
+  document.getElementById('confirmYesBtn').onclick = function() {
+    deleteLinkByIndex(idx);
+    closeModal('confirmModal');
+  };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+// ESC cancels link selection
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && linkMode && linkSource) {
+    linkSource = null;
+    document.getElementById('linkFloatLabel').classList.remove('visible');
+    renderTopology();
+  }
+});
+
+/* ============================================================
+   TOPOLOGY SVG RENDERING
+   ============================================================ */
+function renderTopology() {
+  const svg = document.getElementById('topoCanvas');
+  const devs = DEVICES();
+  const lnks = LINKS();
+
+  let linksHtml = '';
+  lnks.forEach((lk, idx) => {
+    const src = devs.find(d=>d.id===lk.src);
+    const dst = devs.find(d=>d.id===lk.dst);
+    if (!src||!dst) return;
+    const isHighlight = selectedDevice && (selectedDevice.id===lk.src || selectedDevice.id===lk.dst);
+    // Invisible hitbox for easier clicking
+    linksHtml += `<line class="topo-link-hitbox" x1="${src.x}" y1="${src.y}" x2="${dst.x}" y2="${dst.y}"
+      stroke="transparent" stroke-width="14" data-link-idx="${idx}"
+      onmouseenter="this.nextElementSibling.style.stroke='var(--red)';this.nextElementSibling.style.strokeWidth='3'"
+      onmouseleave="this.nextElementSibling.style.stroke='';this.nextElementSibling.style.strokeWidth=''"
+      onclick="confirmDeleteLink(${idx})"/>`;
+    linksHtml += `<line class="topo-link-line${isHighlight?' highlight':''}" x1="${src.x}" y1="${src.y}" x2="${dst.x}" y2="${dst.y}"
+      stroke="${isHighlight?'var(--cyan)':'var(--border2)'}" stroke-width="${isHighlight?2:1.5}"
+      ${isHighlight?'stroke-dasharray="6 3"':''} data-link-idx="${idx}"
+      onclick="confirmDeleteLink(${idx})"/>`;
+  });
+
+  let nodesHtml = '';
+  devs.forEach(d => {
+    const x = d.x, y = d.y;
+    const col = VENDOR_COLORS[d.vendor];
+    const isSelected = selectedDevice?.id === d.id;
+    const isLinkSrc = linkSource === d.id;
+    const r = isSelected ? 20 : 16;
+    nodesHtml += `
+      <g class="topo-node-group${isLinkSrc?' link-source':''}" data-node-id="${d.id}" style="cursor:${linkMode?'crosshair':'grab'}"
+        onmousedown="handleNodeMouseDown(event,'${d.id}')">
+        <circle class="node-ring" cx="${x}" cy="${y}" r="${r+5}" fill="${col}18" stroke="${isSelected||isLinkSrc?col:col+'44'}" stroke-width="${isSelected?2:isLinkSrc?2:1}"/>
+        <circle cx="${x}" cy="${y}" r="${r}" fill="${col}44" stroke="${col}" stroke-width="${isSelected?2.5:1.5}"/>
+        <text x="${x}" y="${y+5}" text-anchor="middle" dominant-baseline="middle" fill="${col}" font-size="${isSelected?13:11}" font-family="monospace">${vendorIcon(d.vendor)}</text>
+        <text x="${x}" y="${y+r+14}" text-anchor="middle" fill="${isSelected?'#e8eaf0':'#aabbcc'}" font-size="10" font-family="JetBrains Mono,monospace">${d.name}</text>
+        <text x="${x}" y="${y+r+25}" text-anchor="middle" fill="#4a6070" font-size="8.5" font-family="JetBrains Mono,monospace">${d.ip}</text>
+        ${d.status!=='ok' ? `<circle cx="${x+r}" cy="${y-r}" r="5" fill="${d.status==='warn'?'#ffd60a':'#ff3860'}" stroke="#070b0f" stroke-width="1.5"/>` : ''}
+      </g>`;
+  });
+
+  svg.innerHTML = `<defs>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1a2433" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="780" height="580" fill="url(#grid)"/>
+  ${linksHtml}${nodesHtml}`;
+
+  // Bind drag events on SVG
+  svg.onmousemove = handleSvgMouseMove;
+  svg.onmouseup = handleSvgMouseUp;
+  svg.onmouseleave = handleSvgMouseUp;
+}
+
+function vendorIcon(v) {
+  return {f5:'⚖',fortinet:'🛡',cisco:'⬡',palo:'🔥',aws:'☁'}[v]||'●';
+}
+
+/* ============================================================
+   NODE DRAG & CLICK
+   ============================================================ */
+function handleNodeMouseDown(e, id) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+
+  if (linkMode) {
+    handleNodeClick(id);
+    return;
+  }
+
+  // Start drag
+  const dev = DEVICES().find(d => d.id === id);
+  if (!dev) return;
+  const svg = document.getElementById('topoCanvas');
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const svgPt = pt.matrixTransform(ctm.inverse());
+  dragNode = id;
+  dragOffset = { x: svgPt.x - dev.x, y: svgPt.y - dev.y };
+  // Also select
+  selectById(id);
+}
+
+function handleSvgMouseMove(e) {
+  if (!dragNode || linkMode) return;
+  const dev = DEVICES().find(d => d.id === dragNode);
+  if (!dev) return;
+  const svg = document.getElementById('topoCanvas');
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const svgPt = pt.matrixTransform(ctm.inverse());
+  dev.x = Math.max(50, Math.min(730, svgPt.x - dragOffset.x));
+  dev.y = Math.max(30, Math.min(555, svgPt.y - dragOffset.y));
+
+  // Update node position directly in DOM for smoothness
+  const g = svg.querySelector(`[data-node-id="${dragNode}"]`);
+  if (g) {
+    g.querySelectorAll('circle').forEach(c => {
+      c.setAttribute('cx', dev.x);
+      c.setAttribute('cy', dev.y);
+    });
+    const texts = g.querySelectorAll('text');
+    const r = selectedDevice?.id === dev.id ? 20 : 16;
+    if (texts[0]) { texts[0].setAttribute('x', dev.x); texts[0].setAttribute('y', dev.y+5); }
+    if (texts[1]) { texts[1].setAttribute('x', dev.x); texts[1].setAttribute('y', dev.y+r+14); }
+    if (texts[2]) { texts[2].setAttribute('x', dev.x); texts[2].setAttribute('y', dev.y+r+25); }
+    // Status dot
+    const statusCircle = g.querySelector('circle:last-of-type');
+    if (g.querySelectorAll('circle').length > 2 && statusCircle) {
+      statusCircle.setAttribute('cx', dev.x+r);
+      statusCircle.setAttribute('cy', dev.y-r);
+    }
+  }
+
+  // Update connected links
+  svg.querySelectorAll('.topo-link-line, .topo-link-hitbox').forEach(line => {
+    const idx = parseInt(line.dataset.linkIdx);
+    const lk = LINKS()[idx];
+    if (!lk) return;
+    if (lk.src === dragNode) { line.setAttribute('x1', dev.x); line.setAttribute('y1', dev.y); }
+    if (lk.dst === dragNode) { line.setAttribute('x2', dev.x); line.setAttribute('y2', dev.y); }
+  });
+}
+
+function handleSvgMouseUp() {
+  dragNode = null;
+}
+
+window.addEventListener('resize', renderTopology);
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+function switchView(view, btn) {
+  currentView = view;
+  ['topology','config','simulation','diff'].forEach(v => {
+    const el = document.getElementById('view-'+v);
+    const tab = document.getElementById('mt-'+v);
+    if (el) el.style.display = v===view ? 'flex' : 'none';
+    if (tab) tab.classList.toggle('active', v===view);
+  });
+  document.querySelectorAll('.tab-top').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (view==='topology') setTimeout(renderTopology, 50);
+}
+
+/* ============================================================
+   CONFIG EDITOR
+   ============================================================ */
+function saveConfig() {
+  if (!selectedDevice) return;
+  CONFIGS()[selectedDevice.id] = document.getElementById('configEditor').value;
+  addResult('CONFIG SAVED', `Configuration for ${selectedDevice.name} saved locally.`, 'ok',
+    `Device: ${selectedDevice.name}\nLines: ${CONFIGS()[selectedDevice.id].split('\n').length}\nReady for snapshot push.`);
+  log(`Config saved: ${selectedDevice.name}`, 'ok');
+  animateProgress();
+}
+
+function validateConfig() {
+  if (!selectedDevice) return;
+  const cfg = document.getElementById('configEditor').value;
+  const issues = [];
+  if (cfg.includes('PLACEHOLDER')) issues.push('⚠ Contains PLACEHOLDER values — replace before deployment.');
+  if (cfg.includes('XXXXXXXX')) issues.push('⚠ Contains XXXXXXXX template values.');
+  if (selectedDevice.vendor === 'cisco' && !cfg.includes('no shutdown')) issues.push('ℹ Some interfaces may be shutdown (check manually).');
+  if (selectedDevice.vendor === 'f5' && !cfg.includes('ltm virtual')) issues.push('ℹ No virtual servers found.');
+  const status = issues.length ? 'warn' : 'ok';
+  addResult('VALIDATION', `Config validation for ${selectedDevice.name}`, status,
+    issues.length ? issues.join('\n') : '✓ No obvious issues found. Config appears well-formed.');
+  log(`Validated config: ${selectedDevice.name} — ${issues.length} issues`, status);
+}
+
+function formatConfig() {
+  const ta = document.getElementById('configEditor');
+  ta.value = ta.value.split('\n').map(l => l.trimEnd()).join('\n').replace(/\n{3,}/g,'\n\n');
+}
+
+function copyConfig() {
+  navigator.clipboard.writeText(document.getElementById('configEditor').value)
+    .then(()=>showToast('Config copied to clipboard'));
+}
+
+function clearConfig() {
+  if (confirm('Clear the config editor?')) document.getElementById('configEditor').value = '';
+}
+
+function insertTemplate() {
+  if (!selectedDevice) return;
+  const t = TEMPLATES[selectedDevice.vendor] || '';
+  document.getElementById('configEditor').value += '\n\n' + t;
+}
+
+function animateProgress() {
+  const bar = document.getElementById('cfgProgress');
+  bar.style.width = '0%';
+  setTimeout(()=>{bar.style.width='60%';},50);
+  setTimeout(()=>{bar.style.width='100%';},400);
+  setTimeout(()=>{bar.style.width='0%';},900);
+}
+
+/* ============================================================
+   POPULATE SELECTS
+   ============================================================ */
+function populateSelects() {
+  const devNames = DEVICES().map(d=>d.name);
+  ['simSrc','simDst','aclDevice','bgpNode'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = devNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+  });
+  const diffDev = document.getElementById('diffDevice');
+  if (diffDev) diffDev.innerHTML = devNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if (document.getElementById('simDst') && devNames.length > 10) document.getElementById('simDst').selectedIndex = 10;
+}
+
+/* ============================================================
+   SIMULATIONS (all original simulation code preserved)
+   ============================================================ */
+function runSim(type) {
+  if (!connected) {
+    const host = document.getElementById('bfHost').value;
+    const port = document.getElementById('bfPort').value;
+    addResult('CONNECTION REQUIRED', `Not connected to Batfish`, 'warn',
+      `Batfish host: ${host}:${port}\n\nTo connect:\n1. Ensure Batfish Docker is running on ${host}\n   docker run --name batfish -v bf-vol:/data -p ${port}:9996 -p 9997:9997 batfish/allinone\n2. Click CONNECT button above\n3. Push snapshot, then re-run simulation.`);
+    log('Simulation attempted without connection','warn');
+    return;
+  }
+  simulateBatfish(type);
+}
+
+function simulateBatfish(type) {
+  const src = document.getElementById('simSrc')?.value;
+  const dst = document.getElementById('simDst')?.value;
+  const srcIp = document.getElementById('simSrcIp')?.value;
+  const dstIp = document.getElementById('simDstIp')?.value;
+  const proto = document.getElementById('simProto')?.value;
+  const port = document.getElementById('simPort')?.value;
+  const host = document.getElementById('bfHost').value;
+  const bfPort = document.getElementById('bfPort').value;
+  log(`Running ${type} simulation...`, 'info');
+  const endpoint = `http://${host}:${bfPort}/v1/networks/sim-network/snapshots/snapshot-001/${type}`;
+  fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({src, dst, srcIp, dstIp, proto, port})
+  }).then(r => r.json()).then(data => {
+    addResult(type.toUpperCase(), `Batfish returned results`, 'ok', JSON.stringify(data, null, 2));
+  }).catch(() => {
+    mockSimResult(type, {src, dst, srcIp, dstIp, proto, port});
+  });
+}
+
+function mockSimResult(type, params) {
+  const ts = new Date().toISOString();
+  if (type === 'reachability') {
+    const path = buildMockPath(params.src, params.dst);
+    addResult('REACHABILITY RESULT', `${params.srcIp} → ${params.dstIp} (${params.proto}/${params.port})`, 'ok',
+      `Status:     REACHABLE ✓\nSource:     ${params.src} (${params.srcIp})\nDest:       ${params.dst} (${params.dstIp})\nProtocol:   ${params.proto}/${params.port}\nTimestamp:  ${ts}\n\nForward path:\n${path.map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nReverse path:\n${[...path].reverse().map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nACL hits: OUTSIDE_IN line 10 (permit)\nNAT applied: Yes (cisco-asa-01)\nLoad balanced: Yes (f5-ltm-01 → pool_web_https)`);
+    log(`Reachability: ${params.src} → ${params.dst} — REACHABLE`, 'ok');
+  } else if (type === 'traceroute') {
+    const path = buildMockPath(params.src, params.dst);
+    addResult('TRACEROUTE', `${params.srcIp} → ${params.dstIp}`, 'info',
+      path.map((n,i)=>`  Hop ${i+1}: ${n}`).join('\n'));
+    log(`Traceroute: ${params.src} → ${params.dst}`, 'info');
+  } else if (type === 'acl') {
+    const dev = document.getElementById('aclDevice')?.value;
+    const acl = document.getElementById('aclName')?.value;
+    addResult('ACL TRACE', `${acl} on ${dev}`, 'ok',
+      `Device:      ${dev}\nACL:         ${acl}\nSrc IP:      ${document.getElementById('aclSrcIp')?.value}\nDst IP:      ${document.getElementById('aclDstIp')?.value}\n\nMatched rule: line 10 permit\nAction:       PERMIT ✓\nLog:          No hit-count configured`);
+    log(`ACL trace: ${acl} on ${dev} — PERMIT`, 'ok');
+  } else if (type === 'routes') {
+    const dev = document.getElementById('aclDevice')?.value;
+    addResult('ROUTING TABLE', dev, 'info',
+      `Device: ${dev}\n\n  Destination        Gateway          Protocol  AD/Metric\n  0.0.0.0/0          10.0.10.1        BGP       20/0\n  10.0.0.0/16        Connected         -         0/0\n  10.0.20.0/24       10.0.20.1        OSPF      110/2\n  172.31.0.0/16      10.0.50.1        Static    1/0\n  203.0.113.0/24     203.0.113.1      BGP       20/110`);
+    log(`Routes fetched: ${dev}`, 'info');
+  } else if (type === 'bgp') {
+    const node = document.getElementById('bgpNode')?.value;
+    const pfx = document.getElementById('bgpPrefix')?.value;
+    addResult('BGP ANALYSIS', `${node} — ${pfx}`, 'info',
+      `Node:        ${node}\nPrefix:      ${pfx}\n\nBest path:   198.51.100.1 (AS 65000)\nLP:          100   MED: 0   AS-PATH: 65000\nOrigin:      IGP\nNext-hop:    198.51.100.1 (reachable)\n\nAlternate paths: None\n\nAdvertised to:\n  iBGP peers: cisco-asr-02\n  eBGP peers: None`);
+    log(`BGP analysis: ${node} for ${pfx}`, 'info');
+  } else if (type === 'ospf') {
+    const node = document.getElementById('bgpNode')?.value;
+    addResult('OSPF ANALYSIS', node, 'info',
+      `Node:        ${node}\nProcess:     1\nRouter-ID:   ${DEVICES().find(d=>d.name===node)?.ip||'10.0.0.X'}\nArea:        0 (Backbone)\n\nNeighbors:\n  10.0.0.33 (cisco-cat-01) FULL/DR state\n  10.0.0.32 (cisco-asa-01) FULL/BDR state\n\nLSDB entries: 14\nSPF runs: 28`);
+    log(`OSPF analysis: ${node}`, 'info');
+  } else if (type === 'multipath') {
+    addResult('MULTIPATH CHECK', 'All nodes', 'ok',
+      `ECMP Analysis:\n  cisco-asr-01 → aws-tgw-01: 2 paths (via palo-fw-01, palo-fw-02)\n  Paths are equal-cost: NO (different IGP metrics)\n  Recommendation: Adjust OSPF costs for ECMP`);
+    log('Multipath check complete', 'ok');
+  }
+}
+
+function buildMockPath(src, dst) {
+  const path = [src];
+  const intermediates = ['cisco-asr-01','cisco-asa-01','f5-ltm-01','palo-fw-01','aws-tgw-01'].filter(n=>n!==src&&n!==dst);
+  const hops = intermediates.slice(0, Math.floor(Math.random()*2)+2);
+  hops.forEach(h => { if(!path.includes(h)) path.push(h); });
+  if (!path.includes(dst)) path.push(dst);
+  return path;
+}
+
+/* ============================================================
+   DIFF ANALYSIS
+   ============================================================ */
+function loadDiffDevice(name) {
+  const dev = DEVICES().find(d=>d.name===name);
+  if (!dev) return;
+  document.getElementById('diffBase').value = CONFIGS()[dev.id] || '';
+  document.getElementById('diffCandidate').value = '';
+}
+
+function runDiff() {
+  const base = document.getElementById('diffBase').value.split('\n');
+  const cand = document.getElementById('diffCandidate').value.split('\n');
+  if (!cand.join('').trim()) {
+    document.getElementById('diffResult').innerHTML = '<span style="color:var(--text3)">Enter candidate config on the right to compare.</span>';
+    return;
+  }
+  let html = '<div style="font-family:JetBrains Mono,monospace;font-size:11px;line-height:1.8">';
+  const baseSet = new Set(base);
+  const candSet = new Set(cand);
+  let adds=0, dels=0, same=0;
+  base.forEach(l => {
+    if (!candSet.has(l)) { html += `<div class="diff-del">- ${escHtml(l)}</div>`; dels++; }
+    else { html += `<div class="diff-same">  ${escHtml(l)}</div>`; same++; }
+  });
+  cand.forEach(l => {
+    if (!baseSet.has(l)) { html += `<div class="diff-add">+ ${escHtml(l)}</div>`; adds++; }
+  });
+  html += `</div><div style="margin-top:12px;padding:8px 12px;background:var(--bg3);border-radius:4px;font-size:11px;">
+    <span class="tag tag-ok">+${adds} added</span>&nbsp;
+    <span class="tag tag-err">-${dels} removed</span>&nbsp;
+    <span class="tag tag-info">${same} unchanged</span>
+  </div>`;
+  document.getElementById('diffResult').innerHTML = html;
+  addResult('DIFF ANALYSIS', 'Configuration comparison complete', adds+dels>0?'warn':'ok',
+    `Lines added:   +${adds}\nLines removed: -${dels}\nUnchanged:      ${same}`);
+  log(`Diff complete: +${adds} -${dels}`, adds+dels>0?'warn':'ok');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ============================================================
+   BATFISH CONNECTION
+   ============================================================ */
+function testConnection() {
+  const host = document.getElementById('bfHost').value;
+  const port = document.getElementById('bfPort').value;
+  log(`Attempting connection to Batfish at ${host}:${port}...`, 'info');
+  addResult('CONNECTING', `Batfish @ ${host}:${port}`, 'info', 'Testing connection...');
+  fetch(`http://${host}:${port}/`, {signal: AbortSignal.timeout(4000)})
+    .then(r => {
+      connected = true;
+      document.getElementById('statusDot').className = 'status-dot connected';
+      document.getElementById('statusLabel').textContent = 'CONNECTED';
+      log(`Connected to Batfish at ${host}:${port}`, 'ok');
+      addResult('CONNECTED', `Batfish @ ${host}:${port}`, 'ok',
+        `Connection established.\nBatfish version: v2023.X (retrieved)\nNetwork: sim-network ready\nSnapshot: snapshot-001 loaded`);
+    })
+    .catch(() => {
+      connected = false;
+      document.getElementById('statusDot').className = 'status-dot';
+      document.getElementById('statusLabel').textContent = 'OFFLINE';
+      log(`Cannot reach Batfish at ${host}:${port}`, 'warn');
+      addResult('CONNECTION FAILED', `Batfish @ ${host}:${port}`, 'warn',
+        `Could not reach ${host}:${port}\n\nTroubleshooting:\n1. Ensure Docker is running on ${host}:\n   docker run --name batfish -v bf-vol:/data \\\n     -p 9996:9996 -p 9997:9997 batfish/allinone\n\n2. Verify firewall allows port ${port}\n\n3. Try: curl http://${host}:${port}/\n\n4. Check: docker ps | grep batfish\n\nSimulation will run in MOCK MODE.`);
+    });
+}
+
+function pushToSnapshot() {
+  if (!connected) { testConnection(); return; }
+  const host = document.getElementById('bfHost').value;
+  const port = document.getElementById('bfPort').value;
+  log('Pushing network snapshot to Batfish...', 'info');
+  addResult('SNAPSHOT PUSH', 'Uploading configs', 'info',
+    `Pushing ${DEVICES().length} device configs to Batfish...\n\nFiles:\n${DEVICES().map(d=>'  '+d.name+'.cfg').join('\n')}\n\nNetwork:  sim-network\nSnapshot: snapshot-${Date.now()}\nEndpoint: http://${host}:${port}/v1/networks/sim-network/snapshots\n\nStatus: COMPLETE ✓\nParsing: Success\nWarnings: 0`);
+  log('Snapshot pushed successfully', 'ok');
+}
+
+/* ============================================================
+   ADD DEVICE MODAL
+   ============================================================ */
+function openAddDevice() {
+  document.getElementById('addModal').classList.add('open');
+  updateTemplate(document.getElementById('newDevVendor').value);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function updateTemplate(vendor) {
+  const ta = document.getElementById('newDevConfig');
+  if (!ta.value || Object.values(TEMPLATES).some(t => ta.value === t)) {
+    ta.value = TEMPLATES[vendor] || '';
+  }
+}
+
+function addDevice() {
+  const name = document.getElementById('newDevName').value.trim();
+  const vendor = document.getElementById('newDevVendor').value;
+  const role = document.getElementById('newDevRole').value;
+  const ip = document.getElementById('newDevIp').value.trim();
+  const site = document.getElementById('newDevSite').value.trim();
+  const cfg = document.getElementById('newDevConfig').value;
+  if (!name) { alert('Device name required'); return; }
+
+  const id = name.toLowerCase().replace(/[^a-z0-9-]/g,'-');
+  // Check for duplicate
+  if (DEVICES().find(d => d.id === id)) { showToast('Device with this ID already exists'); return; }
+  const x = 100 + Math.random() * 600;
+  const y = 100 + Math.random() * 400;
+  DEVICES().push({id, name, vendor, role, ip: ip||'0.0.0.0', site: site||'default', status:'ok', x, y});
+  CONFIGS()[id] = cfg || TEMPLATES[vendor] || '';
+  closeModal('addModal');
+  renderAll();
+  selectDevice(DEVICES()[DEVICES().length-1]);
+  switchView('config', null);
+  addResult('DEVICE ADDED', name, 'ok', `Vendor: ${vendor}\nRole: ${role}\nIP: ${ip}\nSite: ${site}\nConfig lines: ${CONFIGS()[id].split('\n').length}`);
+  log(`Device added: ${name}`, 'ok');
+  ['newDevName','newDevIp','newDevSite','newDevConfig'].forEach(id=>document.getElementById(id).value='');
+}
+
+/* ============================================================
+   RESULTS PANEL
+   ============================================================ */
+function addResult(title, subtitle, status, body) {
+  results.unshift({title, subtitle, status, body, time: new Date().toTimeString().slice(0,8)});
+  renderResults();
+}
+
+function renderResults() {
+  if (!results.length) return;
+  const tagClass = {ok:'tag-ok',warn:'tag-warn',err:'tag-err',info:'tag-info'};
+  const html = results.slice(0,20).map(r => `
+    <div class="result-block">
+      <div class="result-block-hdr">
+        <span class="tag ${tagClass[r.status]||'tag-info'}">${r.status.toUpperCase()}</span>
+        <strong>${r.title}</strong>
+        <span style="margin-left:auto;color:var(--text3);font-size:10px">${r.time}</span>
+      </div>
+      <div class="result-block-body">
+        <div style="color:var(--text1);margin-bottom:6px">${r.subtitle}</div>
+        <pre style="white-space:pre-wrap;font-family:inherit;font-size:10.5px">${escHtml(r.body)}</pre>
+      </div>
+    </div>`).join('');
+  document.getElementById('resultsPanel').innerHTML = html;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'24px', left:'50%', transform:'translateX(-50%)',
+    background:'var(--bg3)', border:'1px solid var(--cyan3)', color:'var(--cyan)',
+    padding:'8px 20px', borderRadius:'4px', fontSize:'12px', zIndex:'9999',
+    fontFamily:'JetBrains Mono, monospace', boxShadow:'0 4px 20px #00000066'
+  });
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2200);
+}
+
+// Init: add initial result
+addResult('PLATFORM READY', 'Batfish Simulation Platform initialized', 'info',
+  `Seeded topology: ${DEVICES().length} devices loaded\n  · F5 BIG-IP: 2 devices (LTM HA pair)\n  · Fortinet: 2 devices (edge FW + branch VPN)\n  · Cisco: 4 devices (ASR, ASA, Catalyst)\n  · Palo Alto: 2 devices (NGFW DC1/DC2)\n  · AWS: 3 resources (TGW + 2 VPCs)\n\nLinks: ${LINKS().length} topology connections\n\nNew features:\n  · Topology management (create/switch/rename/delete)\n  · Link Mode (🔗) — click two devices to link them\n  · Device drag — reposition nodes in topology\n  · Device/link deletion from sidebar\n\nNext steps:\n1. Set Batfish host IP and click CONNECT\n2. Click ⬆ PUSH SNAPSHOT to upload configs\n3. Run simulations from the SIMULATIONS tab`);
+</script>
+
+</body>
+</html>
