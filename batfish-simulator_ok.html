@@ -239,6 +239,7 @@ select.form-input option{background:var(--bg1);}
   <div class="spacer"></div>
   <button class="btn btn-ghost btn-sm" onclick="openAddDevice()">＋ ADD DEVICE</button>
   <button class="btn btn-ghost btn-sm" onclick="pushToSnapshot()">⬆ PUSH SNAPSHOT</button>
+  <button class="btn btn-ghost btn-sm" onclick="exportFullReport()">📄 EXPORT REPORT</button>
 </header>
 
 <!-- SIDEBAR -->
@@ -1325,6 +1326,7 @@ function simulateBatfish(type) {
     body: JSON.stringify({src, dst, srcIp, dstIp, proto, port})
   }).then(r => r.json()).then(data => {
     addResult(type.toUpperCase(), `Batfish returned results`, 'ok', JSON.stringify(data, null, 2));
+    generateAndDownloadReport(type, [results[0]]);
   }).catch(() => {
     mockSimResult(type, {src, dst, srcIp, dstIp, proto, port});
   });
@@ -1369,6 +1371,9 @@ function mockSimResult(type, params) {
       (function(){const devs=DEVICES();const routers=devs.filter(d=>d.role==='Router'||d.role==='Cloud Gateway');const fws=devs.filter(d=>d.role==='Firewall');return `ECMP Analysis:\n  Routers: ${routers.map(d=>d.name).join(', ')}\n  Firewalls in path: ${fws.map(d=>d.name).join(', ')}\n  Equal-cost paths found: ${Math.max(1,Math.floor(fws.length/2))}\n  Recommendation: Verify OSPF/BGP costs for optimal ECMP`;}()));
     log('Multipath check complete', 'ok');
   }
+  // Auto-download report after every simulation
+  const latestResult = results.length > 0 ? [results[0]] : [];
+  generateAndDownloadReport(type, latestResult);
 }
 
 function buildMockPath(src, dst) {
@@ -1558,6 +1563,414 @@ function showToast(msg) {
   });
   document.body.appendChild(t);
   setTimeout(()=>t.remove(), 2200);
+}
+
+/* ============================================================
+   CONFIG PARSING HELPERS
+   ============================================================ */
+function parseRoutes(config) {
+  if (!config) return [];
+  const routes = [];
+  const lines = config.split('\n');
+  for (const line of lines) {
+    const t = line.trim();
+    // Cisco: ip route X.X.X.X M.M.M.M G.G.G.G
+    const ciscoStatic = t.match(/^ip\s+route\s+([\d.\/]+)\s+([\d.]+)\s+([\d.]+)/i);
+    if (ciscoStatic) { routes.push({destination:ciscoStatic[1]+'/'+ciscoStatic[2], gateway:ciscoStatic[3], protocol:'Static'}); continue; }
+    // Cisco: route ZONE X.X.X.X M.M.M.M G.G.G.G (ASA)
+    const asaRoute = t.match(/^route\s+\S+\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
+    if (asaRoute) { routes.push({destination:asaRoute[1]+'/'+asaRoute[2], gateway:asaRoute[3], protocol:'Static'}); continue; }
+    // FortiGate: set gateway X.X.X.X or set dst X.X.X.X
+    if (/^\s*set\s+gateway\s+([\d.]+)/i.test(t)) { routes.push({destination:'default', gateway:t.match(/set\s+gateway\s+([\d.]+)/i)[1], protocol:'Static'}); continue; }
+    if (/^\s*set\s+dst\s+([\d.\/\s]+)/i.test(t) && !t.includes('dst-subnet')) { const m=t.match(/set\s+dst\s+([\d.\/\s]+)/i); routes.push({destination:m[1].trim(), gateway:'-', protocol:'Static'}); continue; }
+    // Palo: static-route ... destination X.X.X.X/Y nexthop ip-address Z.Z.Z.Z
+    const paloRoute = t.match(/static-route\s+\S+\s+destination\s+([\d.\/]+)\s+nexthop\s+ip-address\s+([\d.]+)/i);
+    if (paloRoute) { routes.push({destination:paloRoute[1], gateway:paloRoute[2], protocol:'Static'}); continue; }
+    // F5: net route ... { gw X.X.X.X }
+    const f5Route = t.match(/net\s+route\s+(\S+)\s+\{\s*gw\s+([\d.]+)/i);
+    if (f5Route) { routes.push({destination:f5Route[1], gateway:f5Route[2], protocol:'Static'}); continue; }
+    // AWS: Routes section entries
+    const awsRoute = t.match(/^\s*([\d.\/]+)\s*->\s*(\S+)/);
+    if (awsRoute) { routes.push({destination:awsRoute[1], gateway:awsRoute[2], protocol:'TGW/VPC'}); continue; }
+    // AWS route table entries
+    const awsRt = t.match(/^\s*([\d.\/]+)\s+(local|tgw-\S+)/);
+    if (awsRt) { routes.push({destination:awsRt[1], gateway:awsRt[2], protocol:awsRt[2]==='local'?'Connected':'TGW'}); continue; }
+  }
+  return routes;
+}
+
+function parseBgpInfo(config) {
+  if (!config) return null;
+  const lines = config.split('\n');
+  let asn = null;
+  const neighbors = [];
+  for (const line of lines) {
+    const t = line.trim();
+    const asnMatch = t.match(/router\s+bgp\s+(\d+)/i) || t.match(/AmazonSideAsn\s*=\s*(\d+)/i);
+    if (asnMatch) asn = asnMatch[1];
+    const neighborMatch = t.match(/neighbor\s+([\d.]+)\s+remote-as\s+(\d+)/i);
+    if (neighborMatch) neighbors.push({ip:neighborMatch[1], remoteAs:neighborMatch[2]});
+    const descMatch = t.match(/neighbor\s+([\d.]+)\s+description\s+(.+)/i);
+    if (descMatch) {
+      const nb = neighbors.find(n => n.ip === descMatch[1]);
+      if (nb) nb.description = descMatch[2].trim();
+    }
+  }
+  if (!asn && neighbors.length === 0) return null;
+  return {asn: asn || 'N/A', neighbors};
+}
+
+function parseOspfInfo(config) {
+  if (!config) return null;
+  const lines = config.split('\n');
+  let routerId = null, area = null, processId = null;
+  const networks = [];
+  let found = false;
+  for (const line of lines) {
+    const t = line.trim();
+    const ospfMatch = t.match(/router\s+ospf\s+(\d+)/i);
+    if (ospfMatch) { processId = ospfMatch[1]; found = true; }
+    const ridMatch = t.match(/router-id\s+([\d.]+)/i);
+    if (ridMatch) routerId = ridMatch[1];
+    const netMatch = t.match(/network\s+([\d.]+)\s+([\d.]+)\s+area\s+(\d+)/i);
+    if (netMatch) { networks.push(netMatch[1]+' '+netMatch[2]); area = netMatch[3]; }
+  }
+  if (!found) return null;
+  return {processId: processId || 'N/A', routerId: routerId || 'N/A', area: area || '0', networks};
+}
+
+function parseInterfaces(config) {
+  if (!config) return [];
+  const lines = config.split('\n');
+  const interfaces = [];
+  let currentIf = null;
+  for (const line of lines) {
+    const t = line.trim();
+    // Cisco interface
+    const ciscoIf = t.match(/^interface\s+(\S+)/i);
+    if (ciscoIf && !t.includes('phase')) { currentIf = {name:ciscoIf[1], ip:'-'}; interfaces.push(currentIf); continue; }
+    // FortiGate: edit "ifname"
+    const fortiIf = t.match(/edit\s+"([^"]+)"/);
+    if (fortiIf && currentIf === null || (fortiIf && lines.indexOf(line) > 0)) {
+      const prevLines = lines.slice(Math.max(0,lines.indexOf(line)-5), lines.indexOf(line));
+      if (prevLines.some(l => /system\s+interface/i.test(l)) || currentIf) {
+        currentIf = {name:fortiIf[1], ip:'-'}; interfaces.push(currentIf);
+      }
+    }
+    // IP address
+    if (currentIf) {
+      const ipMatch = t.match(/ip\s+address\s+([\d.]+\s*[\d./]*)/i) || t.match(/set\s+ip\s+([\d.]+\s*[\d./]*)/i);
+      if (ipMatch) currentIf.ip = ipMatch[1].trim();
+    }
+    // Palo: ethernet1/X layer3 ip X.X.X.X/Y
+    const paloIf = t.match(/interface\s+ethernet\s+(ethernet[\d/]+)\s+layer3\s+ip\s+([\d./]+)/i);
+    if (paloIf) { interfaces.push({name:paloIf[1], ip:paloIf[2]}); continue; }
+    // F5: net self X.X.X.X/Y { vlan NAME }
+    const f5If = t.match(/net\s+self\s+([\d./]+)\s*\{?\s*vlan\s+(\S+)/i);
+    if (f5If) { interfaces.push({name:f5If[2], ip:f5If[1]}); continue; }
+    // Palo: net interface comment
+    const paloCmt = t.match(/interface\s+ethernet\s+(ethernet[\d/]+)\s+comment\s+"([^"]+)"/i);
+    if (paloCmt) { const existing = interfaces.find(i => i.name === paloCmt[1]); if (existing) existing.description = paloCmt[2]; }
+    // Cisco description
+    const descMatch = t.match(/^\s*description\s+"?([^"]*)"?/i);
+    if (descMatch && currentIf) currentIf.description = descMatch[1];
+    // nameif (ASA)
+    const nameifMatch = t.match(/nameif\s+(\S+)/i);
+    if (nameifMatch && currentIf) currentIf.description = nameifMatch[1];
+    // Reset on next/end/!
+    if (t === 'next' || t === 'end' || t === '!') currentIf = null;
+  }
+  return interfaces.filter(i => i.name && !i.name.includes('phase') && !i.name.includes('ipsec'));
+}
+
+function parseAcls(config) {
+  if (!config) return [];
+  const lines = config.split('\n');
+  const acls = [];
+  for (const line of lines) {
+    const t = line.trim();
+    // Cisco ACL
+    const ciscoAcl = t.match(/^(ip\s+)?access-list\s+\S+\s+(\S+)/i);
+    if (ciscoAcl && !t.match(/^\d+\s/)) { acls.push({name:t, action:t.includes('permit')?'permit':t.includes('deny')?'deny':'defined'}); continue; }
+    const ciscoAclLine = t.match(/^\s*\d+\s+(permit|deny)\s+(.+)/i);
+    if (ciscoAclLine) { acls.push({name:ciscoAclLine[2].substring(0,60), action:ciscoAclLine[1]}); continue; }
+    // FortiGate firewall policy
+    const fortiPolicy = t.match(/set\s+name\s+"([^"]+)"/i);
+    if (fortiPolicy) { acls.push({name:fortiPolicy[1], action:'policy'}); continue; }
+    const fortiAction = t.match(/set\s+action\s+(\S+)/i);
+    if (fortiAction && acls.length > 0) { acls[acls.length-1].action = fortiAction[1]; continue; }
+    // Palo rulebase security rules
+    const paloRule = t.match(/rulebase\s+security\s+rules\s+(\S+)\s+.*action\s+(\S+)/i);
+    if (paloRule) { acls.push({name:paloRule[1], action:paloRule[2]}); continue; }
+    // AWS SecurityGroup
+    const awsSg = t.match(/\[SecurityGroup:\s*(\S+)\]/i);
+    if (awsSg) { acls.push({name:awsSg[1], action:'security-group'}); continue; }
+    // AWS ACL
+    const awsAcl = t.match(/\[NetworkACL:\s*(\S+)\]/i);
+    if (awsAcl) { acls.push({name:awsAcl[1], action:'nacl'}); continue; }
+  }
+  return acls;
+}
+
+/* ============================================================
+   REPORT HTML GENERATOR
+   ============================================================ */
+function generateReportHTML(simType, simResults) {
+  const ts = new Date().toISOString();
+  const topoName = topo().name;
+  const devices = DEVICES();
+  const links = LINKS();
+  const configs = CONFIGS();
+
+  // Gather all parsed data
+  const deviceRows = devices.map(d => {
+    const statusClass = d.status === 'ok' ? 'tag-ok' : d.status === 'warn' ? 'tag-warn' : 'tag-err';
+    return `<tr>
+      <td>${esc(d.name)}</td><td><span class="vendor-pill" style="background:${VENDOR_COLORS[d.vendor]}22;color:${VENDOR_COLORS[d.vendor]};border:1px solid ${VENDOR_COLORS[d.vendor]}44">${esc(d.vendor.toUpperCase())}</span></td>
+      <td>${esc(d.role)}</td><td class="mono-cell">${esc(d.ip)}</td><td>${esc(d.site)}</td>
+      <td><span class="status-tag ${statusClass}">${d.status.toUpperCase()}</span></td>
+    </tr>`;
+  }).join('');
+
+  const linkRows = links.map(l => {
+    const srcDev = devices.find(d => d.id === l.src);
+    const dstDev = devices.find(d => d.id === l.dst);
+    return `<tr><td>${esc(srcDev?.name||l.src)}</td><td class="link-arrow">↔</td><td>${esc(dstDev?.name||l.dst)}</td></tr>`;
+  }).join('');
+
+  // Routing tables per device
+  let routingHTML = '';
+  devices.forEach(d => {
+    const cfg = configs[d.id];
+    const routes = parseRoutes(cfg);
+    if (routes.length === 0) return;
+    routingHTML += `<div class="device-block"><h4>${esc(d.name)}</h4><table><thead><tr><th>Destination</th><th>Gateway</th><th>Protocol</th></tr></thead><tbody>`;
+    routes.forEach(r => {
+      routingHTML += `<tr><td class="mono-cell">${esc(r.destination)}</td><td class="mono-cell">${esc(r.gateway)}</td><td>${esc(r.protocol)}</td></tr>`;
+    });
+    routingHTML += '</tbody></table></div>';
+  });
+  if (!routingHTML) routingHTML = '<p class="no-data">No routing entries parsed from configs.</p>';
+
+  // BGP summary
+  let bgpHTML = '';
+  devices.forEach(d => {
+    const bgp = parseBgpInfo(configs[d.id]);
+    if (!bgp) return;
+    bgpHTML += `<div class="device-block"><h4>${esc(d.name)} <span class="asn-tag">AS ${esc(bgp.asn)}</span></h4>`;
+    if (bgp.neighbors.length > 0) {
+      bgpHTML += '<table><thead><tr><th>Neighbor IP</th><th>Remote AS</th><th>Description</th></tr></thead><tbody>';
+      bgp.neighbors.forEach(n => {
+        bgpHTML += `<tr><td class="mono-cell">${esc(n.ip)}</td><td>${esc(n.remoteAs)}</td><td>${esc(n.description||'-')}</td></tr>`;
+      });
+      bgpHTML += '</tbody></table>';
+    } else {
+      bgpHTML += '<p class="no-data">BGP configured, no explicit neighbors parsed.</p>';
+    }
+    bgpHTML += '</div>';
+  });
+  if (!bgpHTML) bgpHTML = '<p class="no-data">No BGP configurations found.</p>';
+
+  // OSPF summary
+  let ospfHTML = '';
+  devices.forEach(d => {
+    const ospf = parseOspfInfo(configs[d.id]);
+    if (!ospf) return;
+    ospfHTML += `<div class="device-block"><h4>${esc(d.name)}</h4>
+      <div class="kv-row"><span class="kv-key">Process ID</span><span class="kv-val">${esc(ospf.processId)}</span></div>
+      <div class="kv-row"><span class="kv-key">Router ID</span><span class="kv-val mono-cell">${esc(ospf.routerId)}</span></div>
+      <div class="kv-row"><span class="kv-key">Area</span><span class="kv-val">${esc(ospf.area)}</span></div>`;
+    if (ospf.networks.length > 0) {
+      ospfHTML += '<div class="kv-row"><span class="kv-key">Networks</span><span class="kv-val">' + ospf.networks.map(n => '<code>' + esc(n) + '</code>').join(', ') + '</span></div>';
+    }
+    ospfHTML += '</div>';
+  });
+  if (!ospfHTML) ospfHTML = '<p class="no-data">No OSPF configurations found.</p>';
+
+  // ACL/Policy summary
+  let aclHTML = '';
+  devices.forEach(d => {
+    const acls = parseAcls(configs[d.id]);
+    if (acls.length === 0) return;
+    aclHTML += `<div class="device-block"><h4>${esc(d.name)}</h4><table><thead><tr><th>Policy / Rule</th><th>Action</th></tr></thead><tbody>`;
+    acls.forEach(a => {
+      const actionClass = a.action === 'permit' || a.action === 'accept' || a.action === 'allow' ? 'act-permit' : a.action === 'deny' || a.action === 'drop' ? 'act-deny' : 'act-other';
+      aclHTML += `<tr><td>${esc(a.name)}</td><td><span class="action-tag ${actionClass}">${esc(a.action.toUpperCase())}</span></td></tr>`;
+    });
+    aclHTML += '</tbody></table></div>';
+  });
+  if (!aclHTML) aclHTML = '<p class="no-data">No ACL/policy configurations found.</p>';
+
+  // Interface summary
+  let ifHTML = '';
+  devices.forEach(d => {
+    const ifs = parseInterfaces(configs[d.id]);
+    if (ifs.length === 0) return;
+    ifHTML += `<div class="device-block"><h4>${esc(d.name)}</h4><table><thead><tr><th>Interface</th><th>IP Address</th><th>Description</th></tr></thead><tbody>`;
+    ifs.forEach(i => {
+      ifHTML += `<tr><td class="mono-cell">${esc(i.name)}</td><td class="mono-cell">${esc(i.ip)}</td><td>${esc(i.description||'-')}</td></tr>`;
+    });
+    ifHTML += '</tbody></table></div>';
+  });
+  if (!ifHTML) ifHTML = '<p class="no-data">No interface configurations parsed.</p>';
+
+  // Simulation results section
+  let simResultsHTML = '';
+  simResults.forEach(r => {
+    const tagClass = r.status === 'ok' ? 'tag-ok' : r.status === 'warn' ? 'tag-warn' : r.status === 'err' ? 'tag-err' : 'tag-info';
+    simResultsHTML += `<div class="result-card">
+      <div class="result-card-hdr"><span class="status-tag ${tagClass}">${r.status.toUpperCase()}</span><strong>${esc(r.title)}</strong><span class="result-time">${esc(r.time)}</span></div>
+      <div class="result-card-sub">${esc(r.subtitle)}</div>
+      <pre class="result-body">${esc(r.body)}</pre>
+    </div>`;
+  });
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Batfish Report — ${esc(simType)} — ${ts}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#070b0f;--bg1:#0d1117;--bg2:#131b24;--bg3:#1a2433;--border:#1e2d3d;--border2:#253545;--cyan:#00e5ff;--cyan2:#00b4cc;--cyan3:#007a99;--green:#00ff9d;--green2:#00cc7a;--orange:#ff6b35;--yellow:#ffd60a;--red:#ff3860;--text1:#e8eaf0;--text2:#8899aa;--text3:#4a6070}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg0);color:var(--text1);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;padding:0}
+.report-container{max-width:1100px;margin:0 auto;padding:40px 32px 60px}
+header.report-header{border-bottom:2px solid var(--cyan3);padding-bottom:24px;margin-bottom:32px}
+header.report-header h1{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--cyan);letter-spacing:3px;margin-bottom:4px}
+header.report-header h1 span{color:var(--text3)}
+.header-meta{display:flex;flex-wrap:wrap;gap:24px;margin-top:12px;font-size:11px;color:var(--text2)}
+.header-meta .meta-item{display:flex;align-items:center;gap:6px}
+.header-meta .meta-label{color:var(--text3);letter-spacing:1px;font-size:10px}
+.header-meta .meta-val{color:var(--cyan2)}
+.section{margin-bottom:36px}
+.section h2{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--cyan);letter-spacing:2px;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section h2 .sec-icon{font-size:16px}
+table{width:100%;border-collapse:collapse;background:var(--bg1);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px;font-size:11.5px}
+thead{background:var(--bg2)}
+th{text-align:left;padding:8px 12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;color:var(--text3);border-bottom:1px solid var(--border)}
+td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
+.mono-cell{font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:11px}
+.link-arrow{text-align:center;color:var(--text3);font-size:14px}
+.vendor-pill{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.5px;display:inline-block}
+.status-tag{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.5px;display:inline-block}
+.tag-ok{background:#00ff9d18;color:var(--green);border:1px solid #00ff9d33}
+.tag-warn{background:#ffd60a18;color:var(--yellow);border:1px solid #ffd60a33}
+.tag-err{background:#ff386018;color:var(--red);border:1px solid #ff386033}
+.tag-info{background:#00e5ff18;color:var(--cyan);border:1px solid #00e5ff33}
+.device-block{background:var(--bg1);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.device-block h4{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--text1);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.asn-tag{background:var(--bg2);color:var(--cyan2);padding:1px 8px;border-radius:3px;font-size:11px;font-weight:600;border:1px solid var(--border)}
+.kv-row{display:flex;gap:12px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.kv-row:last-child{border-bottom:none}
+.kv-key{color:var(--text3);min-width:100px;font-size:10px;letter-spacing:1px}
+.kv-val{color:var(--text2)}
+.kv-val code{background:var(--bg2);color:var(--green);padding:1px 5px;border-radius:2px;font-size:10.5px}
+.no-data{color:var(--text3);font-style:italic;font-size:12px;padding:8px 0}
+.result-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden}
+.result-card-hdr{padding:8px 12px;background:var(--bg3);display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600}
+.result-card-sub{padding:6px 12px 0;font-size:11px;color:var(--text1)}
+.result-body{padding:8px 12px 10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text2);line-height:1.7;white-space:pre-wrap;background:transparent;border:none;margin:0}
+.result-time{margin-left:auto;color:var(--text3);font-size:10px}
+.action-tag{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.5px;display:inline-block}
+.act-permit{background:#00ff9d18;color:var(--green);border:1px solid #00ff9d33}
+.act-deny{background:#ff386018;color:var(--red);border:1px solid #ff386033}
+.act-other{background:#00e5ff18;color:var(--cyan);border:1px solid #00e5ff33}
+footer.report-footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);text-align:center;color:var(--text3);font-size:11px}
+footer.report-footer span{color:var(--cyan3)}
+@media print{body{background:#0d1117}table{page-break-inside:avoid}.section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="report-container">
+<header class="report-header">
+  <h1>BATFISH<span>·SIM</span> REPORT</h1>
+  <div class="header-meta">
+    <div class="meta-item"><span class="meta-label">TYPE</span><span class="meta-val">${esc(simType.toUpperCase())}</span></div>
+    <div class="meta-item"><span class="meta-label">TIMESTAMP</span><span class="meta-val">${esc(ts)}</span></div>
+    <div class="meta-item"><span class="meta-label">TOPOLOGY</span><span class="meta-val">${esc(topoName)}</span></div>
+    <div class="meta-item"><span class="meta-label">DEVICES</span><span class="meta-val">${devices.length}</span></div>
+    <div class="meta-item"><span class="meta-label">LINKS</span><span class="meta-val">${links.length}</span></div>
+  </div>
+</header>
+
+<section class="section">
+  <h2><span class="sec-icon">◉</span> Simulation Results</h2>
+  ${simResultsHTML || '<p class="no-data">No simulation results.</p>'}
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">◈</span> Topology Summary — Devices</h2>
+  <table><thead><tr><th>DEVICE</th><th>VENDOR</th><th>ROLE</th><th>IP ADDRESS</th><th>SITE</th><th>STATUS</th></tr></thead><tbody>${deviceRows}</tbody></table>
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">🔗</span> Topology Summary — Links</h2>
+  <table><thead><tr><th>SOURCE</th><th></th><th>DESTINATION</th></tr></thead><tbody>${linkRows}</tbody></table>
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">⇄</span> Routing Tables</h2>
+  ${routingHTML}
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">⬡</span> BGP Summary</h2>
+  ${bgpHTML}
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">◎</span> OSPF Summary</h2>
+  ${ospfHTML}
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">⚑</span> ACL / Policy Summary</h2>
+  ${aclHTML}
+</section>
+
+<section class="section">
+  <h2><span class="sec-icon">▤</span> Interface Summary</h2>
+  ${ifHTML}
+</section>
+
+<footer class="report-footer">Generated by <span>Batfish Simulation Platform</span> · ${esc(ts)}</footer>
+</div>
+</body>
+</html>`;
+}
+
+/* ============================================================
+   REPORT DOWNLOAD MECHANISM
+   ============================================================ */
+function generateAndDownloadReport(simType, resultEntries) {
+  const html = generateReportHTML(simType, resultEntries);
+  const blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const topoSlug = topo().name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/,'');
+  a.href = url;
+  a.download = `batfish-report-${topoSlug}-${simType}-${ts}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function exportFullReport() {
+  if (results.length === 0) {
+    showToast('No simulation results to export');
+    return;
+  }
+  generateAndDownloadReport('full-export', results);
+  showToast('Report exported');
 }
 
 // Init: add initial result
