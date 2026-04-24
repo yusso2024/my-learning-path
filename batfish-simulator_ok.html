@@ -1516,7 +1516,10 @@ async function pushToSnapshot() {
       method: 'POST',
       signal: AbortSignal.timeout(8000)
     });
-    if (!netResp.ok && netResp.status !== 409) throw new Error(`Network create failed (${netResp.status})`);
+    if (!netResp.ok && netResp.status !== 409) {
+      const netBody = await netResp.text().catch(() => '');
+      if (!netBody.includes('already exists')) throw new Error(`Network create failed (${netResp.status}): ${netBody}`);
+    }
     const snapResp = await fetch(`${bfBaseUrl}/v2/networks/${encodeURIComponent(networkName)}/snapshots/${encodeURIComponent(snapshotName)}`, {
       method: 'POST',
       headers: {'Content-Type': 'application/octet-stream'},
