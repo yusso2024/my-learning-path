@@ -1335,7 +1335,7 @@ function mockSimResult(type, params) {
   if (type === 'reachability') {
     const path = buildMockPath(params.src, params.dst);
     addResult('REACHABILITY RESULT', `${params.srcIp} → ${params.dstIp} (${params.proto}/${params.port})`, 'ok',
-      `Status:     REACHABLE ✓\nSource:     ${params.src} (${params.srcIp})\nDest:       ${params.dst} (${params.dstIp})\nProtocol:   ${params.proto}/${params.port}\nTimestamp:  ${ts}\n\nForward path:\n${path.map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nReverse path:\n${[...path].reverse().map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nACL hits: OUTSIDE_IN line 10 (permit)\nNAT applied: Yes (cisco-asa-01)\nLoad balanced: Yes (f5-ltm-01 → pool_web_https)`);
+      `Status:     REACHABLE ✓\nSource:     ${params.src} (${params.srcIp})\nDest:       ${params.dst} (${params.dstIp})\nProtocol:   ${params.proto}/${params.port}\nTimestamp:  ${ts}\n\nForward path:\n${path.map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nReverse path:\n${[...path].reverse().map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nHops: ${path.length}\nPath traverses: ${path.slice(1,-1).join(', ') || 'direct'}`);
     log(`Reachability: ${params.src} → ${params.dst} — REACHABLE`, 'ok');
   } else if (type === 'traceroute') {
     const path = buildMockPath(params.src, params.dst);
@@ -1357,27 +1357,41 @@ function mockSimResult(type, params) {
     const node = document.getElementById('bgpNode')?.value;
     const pfx = document.getElementById('bgpPrefix')?.value;
     addResult('BGP ANALYSIS', `${node} — ${pfx}`, 'info',
-      `Node:        ${node}\nPrefix:      ${pfx}\n\nBest path:   198.51.100.1 (AS 65000)\nLP:          100   MED: 0   AS-PATH: 65000\nOrigin:      IGP\nNext-hop:    198.51.100.1 (reachable)\n\nAlternate paths: None\n\nAdvertised to:\n  iBGP peers: cisco-asr-02\n  eBGP peers: None`);
+      `Node:        ${node}\nPrefix:      ${pfx}\nRouter-ID:   ${DEVICES().find(d=>d.name===node)?.ip||'0.0.0.0'}\n\nBest path:   via next-hop (AS 65000)\nLP:          100   MED: 0   AS-PATH: 65000\nOrigin:      IGP\nNext-hop:    reachable\n\nNeighbors:   ${LINKS().filter(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node||t===node;}).length} adjacencies`);
     log(`BGP analysis: ${node} for ${pfx}`, 'info');
   } else if (type === 'ospf') {
     const node = document.getElementById('bgpNode')?.value;
     addResult('OSPF ANALYSIS', node, 'info',
-      `Node:        ${node}\nProcess:     1\nRouter-ID:   ${DEVICES().find(d=>d.name===node)?.ip||'10.0.0.X'}\nArea:        0 (Backbone)\n\nNeighbors:\n  10.0.0.33 (cisco-cat-01) FULL/DR state\n  10.0.0.32 (cisco-asa-01) FULL/BDR state\n\nLSDB entries: 14\nSPF runs: 28`);
+      (function(){const dev=DEVICES().find(d=>d.name===node);const neighbors=LINKS().filter(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node||t===node;}).map(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node?t:s;});return `Node:        ${node}\nProcess:     1\nRouter-ID:   ${dev?.ip||'0.0.0.0'}\nArea:        0 (Backbone)\n\nNeighbors (${neighbors.length}):\n${neighbors.map(n=>{const nd=DEVICES().find(d=>d.name===n);return '  '+nd?.ip+' ('+n+') FULL state';}).join('\n')}\n\nLSDB entries: ${neighbors.length*4+2}\nSPF runs: ${Math.floor(Math.random()*20)+5}`;}()));
     log(`OSPF analysis: ${node}`, 'info');
   } else if (type === 'multipath') {
     addResult('MULTIPATH CHECK', 'All nodes', 'ok',
-      `ECMP Analysis:\n  cisco-asr-01 → aws-tgw-01: 2 paths (via palo-fw-01, palo-fw-02)\n  Paths are equal-cost: NO (different IGP metrics)\n  Recommendation: Adjust OSPF costs for ECMP`);
+      (function(){const devs=DEVICES();const routers=devs.filter(d=>d.role==='Router'||d.role==='Cloud Gateway');const fws=devs.filter(d=>d.role==='Firewall');return `ECMP Analysis:\n  Routers: ${routers.map(d=>d.name).join(', ')}\n  Firewalls in path: ${fws.map(d=>d.name).join(', ')}\n  Equal-cost paths found: ${Math.max(1,Math.floor(fws.length/2))}\n  Recommendation: Verify OSPF/BGP costs for optimal ECMP`;}()));
     log('Multipath check complete', 'ok');
   }
 }
 
 function buildMockPath(src, dst) {
-  const path = [src];
-  const intermediates = ['cisco-asr-01','cisco-asa-01','f5-ltm-01','palo-fw-01','aws-tgw-01'].filter(n=>n!==src&&n!==dst);
-  const hops = intermediates.slice(0, Math.floor(Math.random()*2)+2);
-  hops.forEach(h => { if(!path.includes(h)) path.push(h); });
-  if (!path.includes(dst)) path.push(dst);
-  return path;
+  const lnks = LINKS();
+  const devs = DEVICES();
+  const adj = {};
+  devs.forEach(d => { adj[d.name] = []; });
+  lnks.forEach(l => {
+    const s = devs.find(d=>d.id===l.src)?.name;
+    const t = devs.find(d=>d.id===l.dst)?.name;
+    if (s && t) { adj[s].push(t); adj[t].push(s); }
+  });
+  const visited = new Set([src]);
+  const queue = [[src]];
+  while (queue.length > 0) {
+    const p = queue.shift();
+    const node = p[p.length - 1];
+    if (node === dst) return p;
+    for (const n of (adj[node] || [])) {
+      if (!visited.has(n)) { visited.add(n); queue.push([...p, n]); }
+    }
+  }
+  return [src, dst];
 }
 
 /* ============================================================
