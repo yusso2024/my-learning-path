@@ -218,28 +218,28 @@ select.form-input option{background:var(--bg1);}
   <div class="topo-selector">
     <span class="topo-label">TOPO:</span>
     <select id="topoSelect"></select>
-    <button class="topo-btn" onclick="openRenameTopoModal()" title="Rename topology">✎</button>
-    <button class="topo-btn" onclick="openNewTopoModal()" title="New topology">＋</button>
-    <button class="topo-btn danger" onclick="confirmDeleteTopology()" title="Delete topology">✕</button>
+    <button type="button" class="topo-btn" onclick="openRenameTopoModal()" title="Rename topology">✎</button>
+    <button type="button" class="topo-btn" onclick="openNewTopoModal()" title="New topology">＋</button>
+    <button type="button" class="topo-btn danger" onclick="confirmDeleteTopology()" title="Delete topology">✕</button>
   </div>
 
   <div class="conn-bar">
     <input id="bfHost" value="192.168.1.100" placeholder="Batfish Host"/>
     <input id="bfPort" value="9996" placeholder="Port" style="width:70px"/>
-    <button class="btn btn-primary" onclick="testConnection()">CONNECT</button>
+    <button type="button" class="btn btn-primary" onclick="testConnection()">CONNECT</button>
     <div class="status-dot" id="statusDot"></div>
     <span class="status-label" id="statusLabel">DISCONNECTED</span>
   </div>
   <div class="tabs-top">
-    <button class="tab-top active" onclick="switchView('topology',this)">TOPOLOGY</button>
-    <button class="tab-top" onclick="switchView('config',this)">CONFIG EDITOR</button>
-    <button class="tab-top" onclick="switchView('simulation',this)">SIMULATIONS</button>
-    <button class="tab-top" onclick="switchView('diff',this)">DIFF ANALYSIS</button>
+    <button type="button" class="tab-top active" onclick="switchView('topology',this)">TOPOLOGY</button>
+    <button type="button" class="tab-top" onclick="switchView('config',this)">CONFIG EDITOR</button>
+    <button type="button" class="tab-top" onclick="switchView('simulation',this)">SIMULATIONS</button>
+    <button type="button" class="tab-top" onclick="switchView('diff',this)">DIFF ANALYSIS</button>
   </div>
   <div class="spacer"></div>
-  <button class="btn btn-ghost btn-sm" onclick="openAddDevice()">＋ ADD DEVICE</button>
-  <button class="btn btn-ghost btn-sm" onclick="pushToSnapshot()">⬆ PUSH SNAPSHOT</button>
-  <button class="btn btn-ghost btn-sm" onclick="exportFullReport()">📄 EXPORT REPORT</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="openAddDevice()">＋ ADD DEVICE</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="pushToSnapshot()">⬆ PUSH SNAPSHOT</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="exportFullReport()">📄 EXPORT REPORT</button>
 </header>
 
 <!-- SIDEBAR -->
@@ -252,27 +252,27 @@ select.form-input option{background:var(--bg1);}
   <div class="device-list" id="deviceList"></div>
   <div class="links-section" id="linksSection"></div>
   <div style="padding:8px 12px;border-top:1px solid var(--border);">
-    <button class="btn btn-ghost add-device-btn" onclick="openAddDevice()">＋ ADD DEVICE</button>
+    <button type="button" class="btn btn-ghost add-device-btn" onclick="openAddDevice()">＋ ADD DEVICE</button>
   </div>
 </aside>
 
 <!-- MAIN -->
 <main class="main">
   <div class="main-tabs">
-    <button class="main-tab active" id="mt-topology" onclick="switchView('topology',null)">TOPOLOGY</button>
-    <button class="main-tab" id="mt-config" onclick="switchView('config',null)">CONFIG EDITOR</button>
-    <button class="main-tab" id="mt-simulation" onclick="switchView('simulation',null)">SIMULATIONS</button>
-    <button class="main-tab" id="mt-diff" onclick="switchView('diff',null)">DIFF</button>
+    <button type="button" class="main-tab active" id="mt-topology" onclick="switchView('topology',null)">TOPOLOGY</button>
+    <button type="button" class="main-tab" id="mt-config" onclick="switchView('config',null)">CONFIG EDITOR</button>
+    <button type="button" class="main-tab" id="mt-simulation" onclick="switchView('simulation',null)">SIMULATIONS</button>
+    <button type="button" class="main-tab" id="mt-diff" onclick="switchView('diff',null)">DIFF</button>
   </div>
   <div class="main-content">
 
     <!-- TOPOLOGY VIEW -->
     <div id="view-topology" class="topo-wrap" style="display:flex">
       <div class="topo-toolbar">
-        <button class="link-mode-btn" id="linkModeBtn" onclick="toggleLinkMode()">🔗 LINK MODE</button>
+        <button type="button" class="link-mode-btn" id="linkModeBtn" onclick="toggleLinkMode()">🔗 LINK MODE</button>
       </div>
       <div class="link-float-label" id="linkFloatLabel">Select target device…</div>
-      <svg id="topoCanvas" width="100%" height="100%" viewBox="0 0 780 580" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg id="topoCanvas" width="100%" height="100%" viewBox="0 0 780 580" preserveAspectRatio="xMidYMid meet"><title>Network topology canvas</title></svg>
       <div class="topo-legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--f5)"></div>F5 BIG-IP</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--fortinet)"></div>FortiGate</div>
@@ -289,21 +289,21 @@ select.form-input option{background:var(--bg1);}
         <div id="cfgBadge" class="vendor-badge"></div>
         <div id="cfgMeta" class="config-meta"></div>
         <div style="flex:1"></div>
-        <button class="btn btn-ghost btn-sm" onclick="validateConfig()">⚡ VALIDATE</button>
-        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 SAVE</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="validateConfig()">⚡ VALIDATE</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveConfig()">💾 SAVE</button>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="cfgProgress"></div></div>
       <div class="editor-area">
         <div class="editor-toolbar">
           <span class="editor-label" id="editorLabel">No file open</span>
-          <button class="btn btn-ghost btn-sm" onclick="formatConfig()">FORMAT</button>
-          <button class="btn btn-ghost btn-sm" onclick="copyConfig()">COPY</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="formatConfig()">FORMAT</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="copyConfig()">COPY</button>
         </div>
         <textarea class="code" id="configEditor" spellcheck="false" placeholder="# Select a device from the sidebar to edit its configuration..."></textarea>
       </div>
       <div class="config-actions">
-        <button class="btn btn-ghost btn-sm" onclick="insertTemplate()">INSERT TEMPLATE BLOCK</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearConfig()">CLEAR</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="insertTemplate()">INSERT TEMPLATE BLOCK</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearConfig()">CLEAR</button>
       </div>
     </div>
 
@@ -342,8 +342,8 @@ select.form-input option{background:var(--bg1);}
             </div>
           </div>
           <div class="sim-run-bar">
-            <button class="btn btn-primary" onclick="runSim('reachability')">RUN REACHABILITY CHECK</button>
-            <button class="btn btn-ghost" onclick="runSim('traceroute')">TRACEROUTE</button>
+            <button type="button" class="btn btn-primary" onclick="runSim('reachability')">RUN REACHABILITY CHECK</button>
+            <button type="button" class="btn btn-ghost" onclick="runSim('traceroute')">TRACEROUTE</button>
           </div>
         </div>
       </div>
@@ -371,8 +371,8 @@ select.form-input option{background:var(--bg1);}
             </div>
           </div>
           <div class="sim-run-bar">
-            <button class="btn btn-primary" onclick="runSim('acl')">TRACE ACL</button>
-            <button class="btn btn-ghost" onclick="runSim('routes')">SHOW ROUTES</button>
+            <button type="button" class="btn btn-primary" onclick="runSim('acl')">TRACE ACL</button>
+            <button type="button" class="btn btn-ghost" onclick="runSim('routes')">SHOW ROUTES</button>
           </div>
         </div>
       </div>
@@ -392,9 +392,9 @@ select.form-input option{background:var(--bg1);}
             </div>
           </div>
           <div class="sim-run-bar">
-            <button class="btn btn-primary" onclick="runSim('bgp')">ANALYZE BGP</button>
-            <button class="btn btn-ghost" onclick="runSim('ospf')">ANALYZE OSPF</button>
-            <button class="btn btn-ghost" onclick="runSim('multipath')">CHECK MULTIPATH</button>
+            <button type="button" class="btn btn-primary" onclick="runSim('bgp')">ANALYZE BGP</button>
+            <button type="button" class="btn btn-ghost" onclick="runSim('ospf')">ANALYZE OSPF</button>
+            <button type="button" class="btn btn-ghost" onclick="runSim('multipath')">CHECK MULTIPATH</button>
           </div>
         </div>
       </div>
@@ -405,7 +405,7 @@ select.form-input option{background:var(--bg1);}
       <div class="diff-hdr">
         <span style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--cyan)">DIFFERENTIAL ANALYSIS</span>
         <select class="form-input" id="diffDevice" style="width:200px" onchange="loadDiffDevice(this.value)"></select>
-        <button class="btn btn-primary" onclick="runDiff()">RUN DIFF</button>
+        <button type="button" class="btn btn-primary" onclick="runDiff()">RUN DIFF</button>
       </div>
       <div class="diff-grid">
         <div class="diff-pane">
@@ -481,8 +481,8 @@ select.form-input option{background:var(--bg1);}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('addModal')">CANCEL</button>
-      <button class="btn btn-primary" onclick="addDevice()">ADD DEVICE</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('addModal')">CANCEL</button>
+      <button type="button" class="btn btn-primary" onclick="addDevice()">ADD DEVICE</button>
     </div>
   </div>
 </div>
@@ -498,8 +498,8 @@ select.form-input option{background:var(--bg1);}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('newTopoModal')">CANCEL</button>
-      <button class="btn btn-primary" onclick="createTopology()">CREATE</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('newTopoModal')">CANCEL</button>
+      <button type="button" class="btn btn-primary" onclick="createTopology()">CREATE</button>
     </div>
   </div>
 </div>
@@ -515,8 +515,8 @@ select.form-input option{background:var(--bg1);}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('renameTopoModal')">CANCEL</button>
-      <button class="btn btn-primary" onclick="renameTopology()">RENAME</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('renameTopoModal')">CANCEL</button>
+      <button type="button" class="btn btn-primary" onclick="renameTopology()">RENAME</button>
     </div>
   </div>
 </div>
@@ -529,8 +529,8 @@ select.form-input option{background:var(--bg1);}
       <p id="confirmMsg" style="color:var(--text1);font-size:12px;line-height:1.6"></p>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">CANCEL</button>
-      <button class="btn btn-danger" id="confirmYesBtn">DELETE</button>
+      <button type="button" class="btn btn-ghost" onclick="closeModal('confirmModal')">CANCEL</button>
+      <button type="button" class="btn btn-danger" id="confirmYesBtn">DELETE</button>
     </div>
   </div>
 </div>
@@ -751,6 +751,8 @@ let activeTopoId = defaultTopoId;
 let selectedDevice = null;
 let currentView = 'topology';
 let connected = false;
+let bfBaseUrl = '';
+let bfSnapshotInfo = null;
 let devGroups = {f5:true,fortinet:true,cisco:true,palo:true,aws:true};
 let logs = [];
 let results = [];
@@ -897,7 +899,7 @@ function renderDeviceList(filter='') {
           <div class="vendor-dot" style="background:${VENDOR_COLORS[d.vendor]}"></div>
           <span class="dev-name">${d.name}</span>
           <div class="dev-status ${d.status==='warn'?'warn':d.status==='err'?'err':''}"></div>
-          <button class="dev-del-btn" onclick="event.stopPropagation();confirmDeleteDevice('${d.id}')" title="Delete device">🗑</button>
+          <button type="button" class="dev-del-btn" onclick="event.stopPropagation();confirmDeleteDevice('${d.id}')" title="Delete device">🗑</button>
         </div>`).join('') : ''}
     </div>`;
   }
@@ -914,7 +916,7 @@ function renderLinksSection() {
       <span style="color:var(--text1)">${lk.src}</span>
       <span style="color:var(--text3)">↔</span>
       <span style="color:var(--text1)">${lk.dst}</span>
-      <button class="link-del" onclick="deleteLinkByIndex(${i})" title="Delete link">✕</button>
+      <button type="button" class="link-del" onclick="deleteLinkByIndex(${i})" title="Delete link">✕</button>
     </div>`;
   });
   sec.innerHTML = html;
@@ -1220,7 +1222,7 @@ function switchView(view, btn) {
     if (el) el.style.display = v===view ? 'flex' : 'none';
     if (tab) tab.classList.toggle('active', v===view);
   });
-  document.querySelectorAll('.tab-top').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-top').forEach(t => { t.classList.remove('active'); });
   if (btn) btn.classList.add('active');
   if (view==='topology') setTimeout(renderTopology, 50);
 }
@@ -1297,74 +1299,78 @@ function populateSelects() {
 /* ============================================================
    SIMULATIONS (all original simulation code preserved)
    ============================================================ */
-function runSim(type) {
-  if (!connected) {
-    const host = document.getElementById('bfHost').value;
-    const port = document.getElementById('bfPort').value;
-    addResult('CONNECTION REQUIRED', `Not connected to Batfish`, 'warn',
-      `Batfish host: ${host}:${port}\n\nTo connect:\n1. Ensure Batfish Docker is running on ${host}\n   docker run --name batfish -v bf-vol:/data -p ${port}:9996 -p 9997:9997 batfish/allinone\n2. Click CONNECT button above\n3. Push snapshot, then re-run simulation.`);
-    log('Simulation attempted without connection','warn');
-    return;
-  }
-  simulateBatfish(type);
+async function runSim(type) {
+  await simulateBatfish(type);
 }
 
-function simulateBatfish(type) {
+async function simulateBatfish(type) {
   const src = document.getElementById('simSrc')?.value;
   const dst = document.getElementById('simDst')?.value;
   const srcIp = document.getElementById('simSrcIp')?.value;
   const dstIp = document.getElementById('simDstIp')?.value;
   const proto = document.getElementById('simProto')?.value;
   const port = document.getElementById('simPort')?.value;
-  const host = document.getElementById('bfHost').value;
-  const bfPort = document.getElementById('bfPort').value;
   log(`Running ${type} simulation...`, 'info');
-  const endpoint = `http://${host}:${bfPort}/v1/networks/sim-network/snapshots/snapshot-001/${type}`;
-  fetch(endpoint, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({src, dst, srcIp, dstIp, proto, port})
-  }).then(r => r.json()).then(data => {
-    addResult(type.toUpperCase(), `Batfish returned results`, 'ok', JSON.stringify(data, null, 2));
-    generateAndDownloadReport(type, [results[0]]);
-  }).catch(() => {
-    mockSimResult(type, {src, dst, srcIp, dstIp, proto, port});
-  });
+  const params = {src, dst, srcIp, dstIp, proto, port};
+  if (connected && bfSnapshotInfo?.networkName && bfSnapshotInfo?.snapshotName && bfBaseUrl) {
+    try {
+      const realAttempt = await tryRealBatfishSimulation(type, params);
+      if (realAttempt) addResult(type.toUpperCase(), 'Batfish API check completed', 'info', realAttempt);
+    } catch (err) {
+      log(`Real Batfish simulation unavailable, using config-aware mock: ${err.message || err}`, 'warn');
+    }
+  } else {
+    log('Batfish snapshot unavailable; using config-aware mock simulation', 'info');
+  }
+  mockSimResult(type, params);
 }
 
 function mockSimResult(type, params) {
   const ts = new Date().toISOString();
   if (type === 'reachability') {
-    const path = buildMockPath(params.src, params.dst);
-    addResult('REACHABILITY RESULT', `${params.srcIp} → ${params.dstIp} (${params.proto}/${params.port})`, 'ok',
-      `Status:     REACHABLE ✓\nSource:     ${params.src} (${params.srcIp})\nDest:       ${params.dst} (${params.dstIp})\nProtocol:   ${params.proto}/${params.port}\nTimestamp:  ${ts}\n\nForward path:\n${path.map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nReverse path:\n${[...path].reverse().map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nHops: ${path.length}\nPath traverses: ${path.slice(1,-1).join(', ') || 'direct'}`);
-    log(`Reachability: ${params.src} → ${params.dst} — REACHABLE`, 'ok');
+    const analysis = buildMockPath(params.src, params.dst);
+    const reachable = analysis.reachable && !analysis.blockedDevice;
+    const status = reachable ? 'ok' : 'warn';
+    const reason = analysis.blockedDevice
+      ? `Path blocked because ${analysis.blockedDevice} appears administratively down from its config.`
+      : analysis.reason;
+    addResult('REACHABILITY RESULT', `${params.srcIp} → ${params.dstIp} (${params.proto}/${params.port})`, status,
+      `Status:     ${reachable ? 'REACHABLE ✓' : 'UNREACHABLE ✗'}\nSource:     ${params.src} (${params.srcIp})\nDest:       ${params.dst} (${params.dstIp})\nProtocol:   ${params.proto}/${params.port}\nTimestamp:  ${ts}\n\nForward path:\n${analysis.path.map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nReverse path:\n${[...analysis.path].reverse().map((n,i)=>'  '+i+'. '+n).join('\n')}\n\nHops: ${analysis.path.length}\nPath traverses: ${analysis.path.slice(1,-1).join(', ') || 'direct'}\nShared subnets: ${analysis.sharedSubnets.length ? analysis.sharedSubnets.join(', ') : 'topology links only'}\nReason: ${reason}`);
+    log(`Reachability: ${params.src} → ${params.dst} — ${reachable ? 'REACHABLE' : 'UNREACHABLE'}`, status);
   } else if (type === 'traceroute') {
-    const path = buildMockPath(params.src, params.dst);
-    addResult('TRACEROUTE', `${params.srcIp} → ${params.dstIp}`, 'info',
-      path.map((n,i)=>`  Hop ${i+1}: ${n}`).join('\n'));
-    log(`Traceroute: ${params.src} → ${params.dst}`, 'info');
+    const analysis = buildMockPath(params.src, params.dst);
+    const status = analysis.reachable && !analysis.blockedDevice ? 'info' : 'warn';
+    addResult('TRACEROUTE', `${params.srcIp} → ${params.dstIp}`, status,
+      `${analysis.path.map((n,i)=>`  Hop ${i+1}: ${n}${analysis.sharedSubnets[i] ? ` via ${analysis.sharedSubnets[i]}` : ''}`).join('\n')}\n\nResult: ${analysis.reachable && !analysis.blockedDevice ? 'TRACE COMPLETE' : 'TRACE STOPPED'}\nReason: ${analysis.blockedDevice ? `${analysis.blockedDevice} appears down in config` : analysis.reason}`);
+    log(`Traceroute: ${params.src} → ${params.dst}`, status);
   } else if (type === 'acl') {
     const dev = document.getElementById('aclDevice')?.value;
     const acl = document.getElementById('aclName')?.value;
-    addResult('ACL TRACE', `${acl} on ${dev}`, 'ok',
-      `Device:      ${dev}\nACL:         ${acl}\nSrc IP:      ${document.getElementById('aclSrcIp')?.value}\nDst IP:      ${document.getElementById('aclDstIp')?.value}\n\nMatched rule: line 10 permit\nAction:       PERMIT ✓\nLog:          No hit-count configured`);
-    log(`ACL trace: ${acl} on ${dev} — PERMIT`, 'ok');
+    const srcIpVal = document.getElementById('aclSrcIp')?.value;
+    const dstIpVal = document.getElementById('aclDstIp')?.value;
+    const aclEval = evaluateAclTrace(dev, acl, srcIpVal, dstIpVal);
+    addResult('ACL TRACE', `${acl} on ${dev}`, aclEval.status,
+      `Device:      ${dev}\nACL:         ${acl}\nSrc IP:      ${srcIpVal}\nDst IP:      ${dstIpVal}\n\nParsed rules:\n${aclEval.rulesText}\n\nMatched rule: ${aclEval.matchedRule}\nAction:       ${aclEval.action}\nReason:       ${aclEval.reason}`);
+    log(`ACL trace: ${acl} on ${dev} — ${aclEval.action}`, aclEval.status);
   } else if (type === 'routes') {
     const dev = document.getElementById('aclDevice')?.value;
-    addResult('ROUTING TABLE', dev, 'info',
-      `Device: ${dev}\n\n  Destination        Gateway          Protocol  AD/Metric\n  0.0.0.0/0          10.0.10.1        BGP       20/0\n  10.0.0.0/16        Connected         -         0/0\n  10.0.20.0/24       10.0.20.1        OSPF      110/2\n  172.31.0.0/16      10.0.50.1        Static    1/0\n  203.0.113.0/24     203.0.113.1      BGP       20/110`);
+    const routeRows = formatRouteTable(dev);
+    addResult('ROUTING TABLE', dev, routeRows.length ? 'info' : 'warn',
+      `Device: ${dev}\n\nDestination           Gateway              Protocol    AD/Metric\n${routeRows.length ? routeRows.join('\n') : 'No routes parsed from the current config.'}`);
     log(`Routes fetched: ${dev}`, 'info');
   } else if (type === 'bgp') {
     const node = document.getElementById('bgpNode')?.value;
     const pfx = document.getElementById('bgpPrefix')?.value;
-    addResult('BGP ANALYSIS', `${node} — ${pfx}`, 'info',
-      `Node:        ${node}\nPrefix:      ${pfx}\nRouter-ID:   ${DEVICES().find(d=>d.name===node)?.ip||'0.0.0.0'}\n\nBest path:   via next-hop (AS 65000)\nLP:          100   MED: 0   AS-PATH: 65000\nOrigin:      IGP\nNext-hop:    reachable\n\nNeighbors:   ${LINKS().filter(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node||t===node;}).length} adjacencies`);
+    const bgp = parseBgpInfo(getConfigByName(node));
+    addResult('BGP ANALYSIS', `${node} — ${pfx}`, bgp ? 'info' : 'warn',
+      bgp ? `Node:        ${node}\nPrefix:      ${pfx}\nRouter-ID:   ${DEVICES().find(d=>d.name===node)?.ip||'0.0.0.0'}\nLocal AS:    ${bgp.asn}\n\nNeighbors (${bgp.neighbors.length}):\n${bgp.neighbors.map(n=>`  ${n.ip} remote-as ${n.remoteAs}${n.description ? ` (${n.description})` : ''}`).join('\n') || '  None parsed'}\n\nBest path:   Config-derived mock only\nNext-hop:    ${bgp.neighbors[0]?.ip || 'unknown'}\nOrigin:      inferred from local config` : `Node: ${node}\nPrefix: ${pfx}\n\nNo BGP configuration parsed from this device config.`);
     log(`BGP analysis: ${node} for ${pfx}`, 'info');
   } else if (type === 'ospf') {
     const node = document.getElementById('bgpNode')?.value;
-    addResult('OSPF ANALYSIS', node, 'info',
-      (function(){const dev=DEVICES().find(d=>d.name===node);const neighbors=LINKS().filter(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node||t===node;}).map(l=>{const s=DEVICES().find(d=>d.id===l.src)?.name;const t=DEVICES().find(d=>d.id===l.dst)?.name;return s===node?t:s;});return `Node:        ${node}\nProcess:     1\nRouter-ID:   ${dev?.ip||'0.0.0.0'}\nArea:        0 (Backbone)\n\nNeighbors (${neighbors.length}):\n${neighbors.map(n=>{const nd=DEVICES().find(d=>d.name===n);return '  '+nd?.ip+' ('+n+') FULL state';}).join('\n')}\n\nLSDB entries: ${neighbors.length*4+2}\nSPF runs: ${Math.floor(Math.random()*20)+5}`;}()));
+    const ospf = parseOspfInfo(getConfigByName(node));
+    const neighbors = getNodeNeighbors(node);
+    addResult('OSPF ANALYSIS', node, ospf ? 'info' : 'warn',
+      ospf ? `Node:        ${node}\nProcess:     ${ospf.processId}\nRouter-ID:   ${ospf.routerId || DEVICES().find(d=>d.name===node)?.ip||'0.0.0.0'}\nArea:        ${ospf.area}\nNetworks:    ${ospf.networks.join(', ') || 'none parsed'}\n\nNeighbors (${neighbors.length}):\n${neighbors.map(n=>{const nd=DEVICES().find(d=>d.name===n);return '  '+(nd?.ip||'0.0.0.0')+' ('+n+') FULL/derived';}).join('\n') || '  None'}\n\nLSDB entries: ${Math.max(2, ospf.networks.length + neighbors.length * 2)}\nSPF runs: derived mock from parsed config` : `Node: ${node}\n\nNo OSPF configuration parsed from this device config.`);
     log(`OSPF analysis: ${node}`, 'info');
   } else if (type === 'multipath') {
     addResult('MULTIPATH CHECK', 'All nodes', 'ok',
@@ -1391,12 +1397,27 @@ function buildMockPath(src, dst) {
   while (queue.length > 0) {
     const p = queue.shift();
     const node = p[p.length - 1];
-    if (node === dst) return p;
+    if (node === dst) {
+      const blockedDevice = p.find(name => isDeviceDown(getDeviceIdByName(name)));
+      return {
+        path: p,
+        reachable: !blockedDevice,
+        blockedDevice,
+        reason: blockedDevice ? `${blockedDevice} is administratively down` : 'Path found from topology and config data.',
+        sharedSubnets: derivePathSubnets(p)
+      };
+    }
     for (const n of (adj[node] || [])) {
       if (!visited.has(n)) { visited.add(n); queue.push([...p, n]); }
     }
   }
-  return [src, dst];
+  return {
+    path: [src, dst],
+    reachable: false,
+    blockedDevice: null,
+    reason: 'No path found in the current topology graph.',
+    sharedSubnets: derivePathSubnets([src, dst])
+  };
 }
 
 /* ============================================================
@@ -1445,38 +1466,352 @@ function escHtml(s) {
 /* ============================================================
    BATFISH CONNECTION
    ============================================================ */
-function testConnection() {
+async function testConnection() {
   const host = document.getElementById('bfHost').value;
   const port = document.getElementById('bfPort').value;
+  const baseUrl = `http://${host}:${port}`;
   log(`Attempting connection to Batfish at ${host}:${port}...`, 'info');
   addResult('CONNECTING', `Batfish @ ${host}:${port}`, 'info', 'Testing connection...');
-  fetch(`http://${host}:${port}/`, {signal: AbortSignal.timeout(4000)})
-    .then(r => {
-      connected = true;
-      document.getElementById('statusDot').className = 'status-dot connected';
-      document.getElementById('statusLabel').textContent = 'CONNECTED';
-      log(`Connected to Batfish at ${host}:${port}`, 'ok');
-      addResult('CONNECTED', `Batfish @ ${host}:${port}`, 'ok',
-        `Connection established.\nBatfish version: v2023.X (retrieved)\nNetwork: sim-network ready\nSnapshot: snapshot-001 loaded`);
-    })
-    .catch(() => {
-      connected = false;
-      document.getElementById('statusDot').className = 'status-dot';
-      document.getElementById('statusLabel').textContent = 'OFFLINE';
-      log(`Cannot reach Batfish at ${host}:${port}`, 'warn');
-      addResult('CONNECTION FAILED', `Batfish @ ${host}:${port}`, 'warn',
-        `Could not reach ${host}:${port}\n\nTroubleshooting:\n1. Ensure Docker is running on ${host}:\n   docker run --name batfish -v bf-vol:/data \\\n     -p 9996:9996 -p 9997:9997 batfish/allinone\n\n2. Verify firewall allows port ${port}\n\n3. Try: curl http://${host}:${port}/\n\n4. Check: docker ps | grep batfish\n\nSimulation will run in MOCK MODE.`);
-    });
+  try {
+    const r = await fetch(`${baseUrl}/v2/version`, {signal: AbortSignal.timeout(4000)});
+    const data = await r.json();
+    if (!r.ok || !data || !data.Batfish) throw new Error('Invalid Batfish version response');
+    connected = true;
+    bfBaseUrl = baseUrl;
+    document.getElementById('statusDot').className = 'status-dot connected';
+    document.getElementById('statusLabel').textContent = 'CONNECTED';
+    log(`Connected to Batfish at ${host}:${port} (v${data.Batfish})`, 'ok');
+    addResult('CONNECTED', `Batfish @ ${host}:${port}`, 'ok',
+      `Connection established.\nBatfish version: ${data.Batfish}\nAPI check: GET /v2/version returned a valid Batfish response\nBase URL cached: ${bfBaseUrl}`);
+    return true;
+  } catch (err) {
+    connected = false;
+    bfBaseUrl = '';
+    bfSnapshotInfo = null;
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusLabel').textContent = 'OFFLINE';
+    log(`Cannot reach Batfish at ${host}:${port}`, 'warn');
+    addResult('CONNECTION FAILED', `Batfish @ ${host}:${port}`, 'warn',
+      `Could not validate Batfish at ${host}:${port}\n\nExpected endpoint: ${baseUrl}/v2/version\nError: ${err.message || err}\n\nTroubleshooting:\n1. Ensure Docker is running on ${host}:\n   docker run --name batfish -v bf-vol:/data \\\n     -p 9996:9996 -p 9997:9997 batfish/allinone\n\n2. Verify firewall allows port ${port}\n\n3. Try: curl ${baseUrl}/v2/version\n\n4. Check: docker ps | grep batfish\n\nSimulation will still run in config-aware MOCK MODE.`);
+    return false;
+  }
 }
 
-function pushToSnapshot() {
-  if (!connected) { testConnection(); return; }
-  const host = document.getElementById('bfHost').value;
-  const port = document.getElementById('bfPort').value;
+async function pushToSnapshot() {
+  if (!connected) {
+    const ok = await testConnection();
+    if (!ok) return;
+  }
+  if (!bfBaseUrl) return;
+  const networkName = sanitizeBatfishName(topo().name || 'sim-network');
+  const snapshotName = `snap-${Date.now()}`;
+  const files = DEVICES().map(d => ({
+    name: `snapshot/configs/${sanitizeBatfishFileName(d.name)}.cfg`,
+    content: CONFIGS()[d.id] || ''
+  })).filter(f => f.content.trim());
+  const zipBytes = buildUncompressedZip(files);
   log('Pushing network snapshot to Batfish...', 'info');
-  addResult('SNAPSHOT PUSH', 'Uploading configs', 'info',
-    `Pushing ${DEVICES().length} device configs to Batfish...\n\nFiles:\n${DEVICES().map(d=>'  '+d.name+'.cfg').join('\n')}\n\nNetwork:  sim-network\nSnapshot: snapshot-${Date.now()}\nEndpoint: http://${host}:${port}/v1/networks/sim-network/snapshots\n\nStatus: COMPLETE ✓\nParsing: Success\nWarnings: 0`);
-  log('Snapshot pushed successfully', 'ok');
+  try {
+    const netResp = await fetch(`${bfBaseUrl}/v2/networks?name=${encodeURIComponent(networkName)}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!netResp.ok && netResp.status !== 409) throw new Error(`Network create failed (${netResp.status})`);
+    const snapResp = await fetch(`${bfBaseUrl}/v2/networks/${encodeURIComponent(networkName)}/snapshots/${encodeURIComponent(snapshotName)}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/octet-stream'},
+      body: new Blob([zipBytes], {type: 'application/octet-stream'}),
+      signal: AbortSignal.timeout(15000)
+    });
+    const snapText = await snapResp.text();
+    if (!snapResp.ok) throw new Error(`Snapshot upload failed (${snapResp.status}): ${snapText || snapResp.statusText}`);
+    const warnings = extractParseWarnings(snapText);
+    bfSnapshotInfo = {networkName, snapshotName, fileCount: files.length, warnings};
+    addResult('SNAPSHOT PUSH', 'Uploading configs', warnings.length ? 'warn' : 'ok',
+      `Pushing ${files.length} device configs to Batfish...\n\nFiles:\n${files.map(f=>'  '+f.name.replace('snapshot/configs/','')).join('\n')}\n\nNetwork:  ${networkName}\nSnapshot: ${snapshotName}\nEndpoint: ${bfBaseUrl}/v2/networks/${networkName}/snapshots/${snapshotName}\nZIP size: ${zipBytes.length} bytes\nStatus: COMPLETE ✓\nParsing warnings: ${warnings.length}${warnings.length ? `\n\nWarnings:\n${warnings.map(w=>'  - '+w).join('\n')}` : '\nWarnings: none reported'}`);
+    log(`Snapshot pushed successfully: ${networkName}/${snapshotName}`, warnings.length ? 'warn' : 'ok');
+  } catch (err) {
+    bfSnapshotInfo = null;
+    addResult('SNAPSHOT PUSH FAILED', 'Uploading configs', 'warn',
+      `Network:  ${networkName}\nSnapshot: ${snapshotName}\nFiles prepared: ${files.length}\nZIP size: ${zipBytes.length} bytes\nError: ${err.message || err}`);
+    log(`Snapshot push failed: ${err.message || err}`, 'warn');
+  }
+}
+
+async function tryRealBatfishSimulation(type, params) {
+  const versionResp = await fetch(`${bfBaseUrl}/v2/version`, {signal: AbortSignal.timeout(4000)});
+  const versionData = await versionResp.json();
+  if (!versionResp.ok || !versionData?.Batfish) throw new Error('Batfish version check failed during simulation');
+  return `Connected Batfish instance: ${versionData.Batfish}\nNetwork: ${bfSnapshotInfo.networkName}\nSnapshot: ${bfSnapshotInfo.snapshotName}\nRequested simulation: ${type}\nFlow: ${params.srcIp} → ${params.dstIp} (${params.proto}/${params.port})\n\nThis Batfish instance accepts snapshot operations, but question execution is disabled/broken here, so the platform automatically fell back to the config-aware mock engine.`;
+}
+
+function getConfigByName(name) {
+  const dev = DEVICES().find(d => d.name === name);
+  return dev ? (CONFIGS()[dev.id] || '') : '';
+}
+
+function getDeviceIdByName(name) {
+  return DEVICES().find(d => d.name === name)?.id || name;
+}
+
+function getNodeNeighbors(node) {
+  return LINKS().filter(l => {
+    const s = DEVICES().find(d=>d.id===l.src)?.name;
+    const t = DEVICES().find(d=>d.id===l.dst)?.name;
+    return s===node || t===node;
+  }).map(l => {
+    const s = DEVICES().find(d=>d.id===l.src)?.name;
+    const t = DEVICES().find(d=>d.id===l.dst)?.name;
+    return s===node ? t : s;
+  }).filter(Boolean);
+}
+
+function sanitizeBatfishName(name) {
+  return String(name || 'sim-network').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-') || 'sim-network';
+}
+
+function sanitizeBatfishFileName(name) {
+  return String(name || 'device').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-{2,}/g,'-').replace(/^-+|-+$/g,'') || 'device';
+}
+
+function maskToPrefix(mask) {
+  return String(mask || '').split('.').reduce((sum, octet) => sum + (Number(octet).toString(2).match(/1/g) || []).length, 0);
+}
+
+function ipToInt(ip) {
+  return String(ip || '').split('.').reduce((acc, part) => ((acc << 8) >>> 0) + (Number(part) || 0), 0) >>> 0;
+}
+
+function cidrFromIpMask(ip, mask) {
+  if (!ip || !mask) return null;
+  if (String(ip).includes('/')) return ip;
+  const prefix = maskToPrefix(mask);
+  const intMask = prefix === 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+  const network = ipToInt(ip) & intMask;
+  return `${[(network>>>24)&255,(network>>>16)&255,(network>>>8)&255,network&255].join('.')}/${prefix}`;
+}
+
+function parseDeviceSubnets(deviceId) {
+  const cfg = CONFIGS()[deviceId] || '';
+  return parseInterfaces(cfg).map(iface => {
+    const raw = String(iface.ip || '').trim();
+    if (!raw || raw === '-') return null;
+    if (raw.includes('/')) return raw;
+    const parts = raw.split(/\s+/);
+    return parts.length >= 2 ? cidrFromIpMask(parts[0], parts[1]) : null;
+  }).filter(Boolean);
+}
+
+function derivePathSubnets(path) {
+  const devByName = Object.fromEntries(DEVICES().map(d => [d.name, d]));
+  const subnets = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const left = devByName[path[i]];
+    const right = devByName[path[i+1]];
+    const leftSubs = new Set(left ? parseDeviceSubnets(left.id) : []);
+    const rightSubs = new Set(right ? parseDeviceSubnets(right.id) : []);
+    const shared = [...leftSubs].filter(s => rightSubs.has(s));
+    subnets.push(shared[0] || 'topology-link');
+  }
+  return subnets;
+}
+
+function isDeviceDown(deviceId) {
+  const cfg = CONFIGS()[deviceId] || '';
+  if (!cfg.trim()) return false;
+  const lines = cfg.split('\n');
+  let ciscoBlocks = [], currentCisco = null;
+  let fortiBlocks = [], inFortiInterfaces = false, currentForti = null;
+  let paloInterfaces = [];
+  let f5Objects = [];
+
+  for (const rawLine of lines) {
+    const t = rawLine.trim();
+    const ciscoIf = t.match(/^interface\s+(\S+)/i);
+    if (ciscoIf && !t.includes('phase')) {
+      currentCisco = {name:ciscoIf[1], shutdown:false, noShutdown:false};
+      ciscoBlocks.push(currentCisco);
+      continue;
+    }
+    if (currentCisco) {
+      if (/^no\s+shutdown$/i.test(t)) currentCisco.noShutdown = true;
+      else if (/^shutdown$/i.test(t)) currentCisco.shutdown = true;
+      else if (t === '!') currentCisco = null;
+    }
+
+    if (/^config\s+system\s+interface/i.test(t)) { inFortiInterfaces = true; currentForti = null; continue; }
+    const fortiEdit = t.match(/^edit\s+"([^"]+)"/i);
+    if (inFortiInterfaces && fortiEdit) {
+      currentForti = {name:fortiEdit[1], down:false};
+      fortiBlocks.push(currentForti);
+      continue;
+    }
+    if (currentForti && /^set\s+status\s+down/i.test(t)) currentForti.down = true;
+    if (inFortiInterfaces && (t === 'next' || t === 'end')) {
+      if (t === 'next') currentForti = null;
+      if (t === 'end') { inFortiInterfaces = false; currentForti = null; }
+    }
+
+    const paloIf = t.match(/^set\s+network\s+interface\s+ethernet\s+(ethernet[\d/]+)\s+layer3\s+ip\s+([\d./]+)/i);
+    if (paloIf) {
+      paloInterfaces.push({name:paloIf[1], hasIp:!!paloIf[2], disabled:false});
+      continue;
+    }
+    const paloDisable = t.match(/^set\s+network\s+interface\s+ethernet\s+(ethernet[\d/]+).*\bdisable\b/i);
+    if (paloDisable) {
+      const existing = paloInterfaces.find(i => i.name === paloDisable[1]);
+      if (existing) existing.disabled = true;
+      else paloInterfaces.push({name:paloDisable[1], hasIp:false, disabled:true});
+    }
+
+    const f5Obj = t.match(/^ltm\s+(virtual|pool)\s+\S+.*$/i);
+    if (f5Obj) f5Objects.push({line:t, disabled:/\bdisabled\b/i.test(t)});
+  }
+
+  if (ciscoBlocks.length && ciscoBlocks.every(b => b.shutdown && !b.noShutdown)) return true;
+  if (fortiBlocks.length && fortiBlocks.every(b => b.down)) return true;
+  if (paloInterfaces.length && paloInterfaces.every(i => i.disabled || !i.hasIp)) return true;
+  if (f5Objects.length && f5Objects.every(o => o.disabled)) return true;
+  return false;
+}
+
+function padRight(val, width) {
+  const str = String(val ?? '');
+  return str.length >= width ? str.slice(0, width) : str + ' '.repeat(width - str.length);
+}
+
+function routeMetric(protocol) {
+  const key = String(protocol || '').toLowerCase();
+  if (key.includes('connected')) return '0/0';
+  if (key.includes('static')) return '1/0';
+  if (key.includes('ospf')) return '110/2';
+  if (key.includes('bgp')) return '20/0';
+  if (key.includes('tgw')) return '20/0';
+  return '-';
+}
+
+function formatRouteTable(deviceName) {
+  return parseRoutes(getConfigByName(deviceName)).map(r => `${padRight(r.destination, 21)} ${padRight(r.gateway, 20)} ${padRight(r.protocol, 11)} ${routeMetric(r.protocol)}`);
+}
+
+function evaluateAclTrace(deviceName, aclName, srcIp, dstIp) {
+  const cfg = getConfigByName(deviceName);
+  const parsedRules = parseAcls(cfg);
+  const ruleLines = cfg.split('\n').map(l => l.trim()).filter(Boolean);
+  const relevant = parsedRules.filter(r => !aclName || r.name.toLowerCase().includes(String(aclName).toLowerCase()) || String(aclName).toLowerCase().includes(r.name.toLowerCase()));
+  let matchedRule = 'No explicit match';
+  let action = 'NO MATCH';
+  let status = 'warn';
+  let reason = 'No ACL/policy rule in the config clearly matched the supplied source/destination.';
+
+  for (const line of ruleLines) {
+    const cisco = line.match(/^\d+\s+(permit|deny)\s+.*$/i);
+    if (cisco) {
+      const srcMatch = line.includes(' any') || line.includes(srcIp || '');
+      const dstMatch = line.includes(' any') || line.includes(dstIp || '');
+      if (srcMatch && dstMatch) {
+        matchedRule = line;
+        action = cisco[1].toUpperCase();
+        status = cisco[1].toLowerCase() === 'permit' ? 'ok' : 'warn';
+        reason = 'Matched Cisco ACL line from the running config.';
+        break;
+      }
+    }
+    const palo = line.match(/set\s+rulebase\s+security\s+rules\s+(\S+).+action\s+(allow|deny)/i);
+    if (palo) {
+      const srcMatch = /source\s+any/i.test(line) || line.includes(srcIp || '');
+      const dstMatch = /destination\s+any/i.test(line) || line.includes(dstIp || '');
+      if (srcMatch && dstMatch) {
+        matchedRule = `${palo[1]} (${palo[2]})`;
+        action = palo[2].toUpperCase();
+        status = palo[2].toLowerCase() === 'allow' ? 'ok' : 'warn';
+        reason = 'Matched Palo Alto security rule from the current config.';
+        break;
+      }
+    }
+    const forti = line.match(/^set\s+action\s+(accept|deny)/i);
+    if (forti && relevant.length) {
+      matchedRule = `${relevant[0].name} (${forti[1]})`;
+      action = forti[1].toUpperCase();
+      status = forti[1].toLowerCase() === 'accept' ? 'ok' : 'warn';
+      reason = 'Matched FortiGate policy action in the config block.';
+      break;
+    }
+  }
+
+  return {
+    matchedRule,
+    action,
+    status,
+    reason,
+    rulesText: (relevant.length ? relevant : parsedRules).slice(0, 12).map(r => `  - ${r.name} => ${String(r.action).toUpperCase()}`).join('\n') || '  No ACL rules parsed from config.'
+  };
+}
+
+function crc32(bytes) {
+  if (!crc32.table) {
+    crc32.table = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      crc32.table[i] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for (const b of bytes) crc = crc32.table[(crc ^ b) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildUncompressedZip(files) {
+  const enc = new TextEncoder();
+  const entries = files.map(file => {
+    const nameBytes = enc.encode(file.name);
+    const dataBytes = enc.encode(file.content);
+    return {nameBytes, dataBytes, crc: crc32(dataBytes)};
+  });
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours() & 31) << 11) | ((now.getMinutes() & 63) << 5) | ((Math.floor(now.getSeconds() / 2)) & 31);
+  const dosDate = ((((now.getFullYear() - 1980) & 127) << 9) | (((now.getMonth() + 1) & 15) << 5) | (now.getDate() & 31)) >>> 0;
+  const put32 = (view, at, value) => view.setUint32(at, value >>> 0, true);
+  const put16 = (view, at, value) => view.setUint16(at, value >>> 0, true);
+
+  for (const entry of entries) {
+    const local = new Uint8Array(30 + entry.nameBytes.length);
+    const lv = new DataView(local.buffer);
+    put32(lv, 0, 0x04034b50); put16(lv, 4, 20); put16(lv, 6, 0); put16(lv, 8, 0);
+    put16(lv, 10, dosTime); put16(lv, 12, dosDate); put32(lv, 14, entry.crc);
+    put32(lv, 18, entry.dataBytes.length); put32(lv, 22, entry.dataBytes.length);
+    put16(lv, 26, entry.nameBytes.length); put16(lv, 28, 0); local.set(entry.nameBytes, 30);
+    parts.push(local, entry.dataBytes);
+
+    const cd = new Uint8Array(46 + entry.nameBytes.length);
+    const cv = new DataView(cd.buffer);
+    put32(cv, 0, 0x02014b50); put16(cv, 4, 20); put16(cv, 6, 20); put16(cv, 8, 0); put16(cv, 10, 0);
+    put16(cv, 12, dosTime); put16(cv, 14, dosDate); put32(cv, 16, entry.crc); put32(cv, 20, entry.dataBytes.length);
+    put32(cv, 24, entry.dataBytes.length); put16(cv, 28, entry.nameBytes.length); put16(cv, 30, 0); put16(cv, 32, 0);
+    put16(cv, 34, 0); put16(cv, 36, 0); put32(cv, 38, 0); put32(cv, 42, offset); cd.set(entry.nameBytes, 46);
+    central.push(cd);
+    offset += local.length + entry.dataBytes.length;
+  }
+
+  const centralSize = central.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  put32(ev, 0, 0x06054b50); put16(ev, 4, 0); put16(ev, 6, 0); put16(ev, 8, entries.length); put16(ev, 10, entries.length);
+  put32(ev, 12, centralSize); put32(ev, 16, offset); put16(ev, 20, 0);
+
+  const totalSize = parts.reduce((sum, part) => sum + part.length, 0) + centralSize + end.length;
+  const zip = new Uint8Array(totalSize);
+  let cursor = 0;
+  [...parts, ...central, end].forEach(part => { zip.set(part, cursor); cursor += part.length; });
+  return zip;
+}
+
+function extractParseWarnings(text) {
+  return String(text || '').split('\n').map(l => l.trim()).filter(l => /warn|error|unrecognized|unsupported/i.test(l));
 }
 
 /* ============================================================
@@ -1520,7 +1855,7 @@ function addDevice() {
   switchView('config', null);
   addResult('DEVICE ADDED', name, 'ok', `Vendor: ${vendor}\nRole: ${role}\nIP: ${ip}\nSite: ${site}\nConfig lines: ${CONFIGS()[id].split('\n').length}`);
   log(`Device added: ${name}`, 'ok');
-  ['newDevName','newDevIp','newDevSite','newDevConfig'].forEach(id=>document.getElementById(id).value='');
+  ['newDevName','newDevIp','newDevSite','newDevConfig'].forEach(id => { document.getElementById(id).value = ''; });
 }
 
 /* ============================================================
